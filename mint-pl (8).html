@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P&L Analyzer — MINT Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gd:#163d25;--gm:#1e5c38;--ga:#27ae60;--gl:#eef7f2;--gb:#c8dfd2;
+  --tp:#0f1f16;--ts:#4a6355;--tm:#8aab96;--bg:#f2f7f4;--card:#fff;
+  --shadow:0 1px 3px rgba(22,61,37,.07),0 4px 14px rgba(22,61,37,.06);
+  --r:10px;--font:'Plus Jakarta Sans',sans-serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--tp);min-height:100vh}
+.header{background:var(--gd);color:#fff;padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
+.header .brand{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.6}
+.header .title{font-size:1rem;font-weight:800}
+.back{font-size:.8rem;color:rgba(255,255,255,.6);text-decoration:none;transition:color .15s}
+.back:hover{color:#fff}
+.main{max-width:860px;margin:0 auto;padding:2rem 1.5rem}
+.api-banner{background:#fffbeb;border:1.5px solid #fcd34d;border-radius:var(--r);padding:1.1rem 1.4rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.api-banner .lbl{font-size:.85rem;font-weight:700;color:#92400e;flex-shrink:0}
+.api-banner input{flex:1;min-width:240px;padding:.5rem .85rem;border:1.5px solid #fcd34d;border-radius:7px;font-family:var(--font);font-size:.84rem;background:#fff}
+.api-banner input:focus{outline:none;border-color:#f59e0b}
+.btn-savekey{padding:.48rem 1rem;border-radius:7px;border:none;background:#92400e;color:#fff;font-family:var(--font);font-size:.82rem;font-weight:700;cursor:pointer}
+.api-saved{margin-bottom:1.25rem;font-size:.84rem;color:var(--gm);font-weight:600}
+.api-saved .chg{color:var(--tm);cursor:pointer;text-decoration:underline;font-weight:400;margin-left:.5rem}
+.upload-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:2px dashed var(--gb);padding:2.5rem;text-align:center;margin-bottom:1.5rem;transition:border-color .2s,background .2s}
+.upload-card.drag-over{border-color:var(--ga);background:var(--gl)}
+.upload-icon{font-size:2.5rem;margin-bottom:.75rem}
+.upload-title{font-size:1rem;font-weight:700;color:var(--gd);margin-bottom:.35rem}
+.upload-sub{font-size:.84rem;color:var(--ts);margin-bottom:1.25rem;line-height:1.55}
+.btn-upload{padding:.55rem 1.4rem;border-radius:8px;border:none;background:var(--gd);color:#fff;font-family:var(--font);font-size:.85rem;font-weight:700;cursor:pointer}
+.btn-upload:hover{background:var(--gm)}
+.progress-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid var(--gb);padding:1.75rem;margin-bottom:1.5rem;display:none;text-align:center}
+.spinner{width:40px;height:40px;border:3px solid var(--gb);border-top-color:var(--ga);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 1rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+.prog-msg{font-size:.9rem;color:var(--ts);font-weight:500}
+.error-card{background:#fff5f5;border:1.5px solid #fca5a5;border-radius:var(--r);padding:1.25rem 1.5rem;margin-bottom:1.5rem;display:none}
+.error-title{font-weight:700;color:#dc2626;margin-bottom:.35rem}
+.error-msg{font-size:.85rem;color:#7f1d1d}
+.results{display:none}
+.period-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem}
+.period-title{font-size:1.35rem;font-weight:800;color:var(--gd);letter-spacing:-.02em}
+.btn-reset{padding:.45rem .95rem;border-radius:7px;border:1.5px solid var(--gb);background:#fff;font-family:var(--font);font-size:.8rem;font-weight:600;color:var(--ts);cursor:pointer}
+.btn-reset:hover{border-color:var(--gm);color:var(--gm)}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:1rem;margin-bottom:1.5rem}
+.kpi-card{background:var(--card);border-radius:var(--r);padding:1.1rem 1.3rem;box-shadow:var(--shadow);border:1px solid var(--gb)}
+.kpi-card.inc{border-left:4px solid var(--ga)}
+.kpi-card.exp{border-left:4px solid #f59e0b}
+.kpi-card.netp{border-left:4px solid var(--ga)}
+.kpi-card.netn{border-left:4px solid #dc2626}
+.kpi-lbl{font-size:.69rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--tm);margin-bottom:.35rem}
+.kpi-val{font-size:1.6rem;font-weight:800;letter-spacing:-.02em;line-height:1}
+.kpi-val.pos{color:var(--gm)}.kpi-val.neg{color:#dc2626}.kpi-val.neu{color:var(--gd)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem}
+@media(max-width:640px){.two-col{grid-template-columns:1fr}}
+.sec-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid var(--gb);overflow:hidden}
+.sec-head{padding:.85rem 1.1rem;background:var(--gd);color:#fff;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.sec-head.dark{background:#374151}
+.cat-row{display:flex;justify-content:space-between;align-items:center;padding:.7rem 1.1rem;border-bottom:1px solid var(--gb);font-size:.87rem}
+.cat-row:last-child{border-bottom:none}
+.cat-row.total{border-top:2px solid var(--gb);font-weight:700}
+.cat-name{color:var(--ts)}
+.ca{font-weight:700;font-variant-numeric:tabular-nums}
+.ca.i{color:var(--gm)}.ca.e{color:#374151}
+.tx-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid var(--gb);overflow:hidden;margin-bottom:1.5rem}
+.tx-head{padding:.85rem 1.1rem;background:var(--gd);color:#fff;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;display:flex;justify-content:space-between;align-items:center}
+.tx-tog{font-size:.75rem;font-weight:600;color:rgba(255,255,255,.7);cursor:pointer;text-decoration:underline;text-transform:none;letter-spacing:0}
+table.tx{width:100%;border-collapse:collapse}
+table.tx th{padding:.6rem 1rem;font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tm);text-align:left;border-bottom:1px solid var(--gb)}
+table.tx td{padding:.72rem 1rem;font-size:.84rem;border-bottom:1px solid var(--gb)}
+table.tx tr:last-child td{border-bottom:none}
+table.tx tbody tr:hover{background:var(--gl)}
+.ti{color:var(--gm);font-weight:700}.te{color:#374151;font-weight:700}
+.tc{font-size:.75rem;background:var(--gl);color:var(--ts);padding:.15rem .55rem;border-radius:10px;font-weight:600}
+</style>
+</head>
+<body>
+<header class="header">
+  <div>
+    <div class="brand">MINT Cleaning Pros · Internal</div>
+    <div class="title">P&amp;L Analyzer</div>
+  </div>
+  <a href="index.html" class="back">← Dashboard</a>
+</header>
+<main class="main">
+
+  <div class="api-banner" id="apiBanner">
+    <span class="lbl">🔑 Anthropic API Key</span>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-..." />
+    <button class="btn-savekey" id="saveKeyBtn">Save Key</button>
+  </div>
+  <div id="apiSaved" style="display:none" class="api-saved">
+    ✓ API key saved<span class="chg" id="changeKeyBtn">Change</span>
+  </div>
+
+  <div class="upload-card" id="uploadCard">
+    <div class="upload-icon">📄</div>
+    <div class="upload-title">Upload TNB Bank Statement</div>
+    <div class="upload-sub">Drag &amp; drop your PDF here, or click Choose PDF.<br>Supports Thomasville National Bank monthly statements.</div>
+    <button class="btn-upload" id="chooseBtn">Choose PDF</button>
+    <input type="file" id="fileInput" accept=".pdf" style="display:none" />
+  </div>
+
+  <div class="progress-card" id="progressCard">
+    <div class="spinner"></div>
+    <div class="prog-msg" id="progMsg">Processing...</div>
+  </div>
+
+  <div class="error-card" id="errorCard">
+    <div class="error-title">Something went wrong</div>
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+
+  <div class="results" id="results">
+    <div class="period-header">
+      <div class="period-title" id="periodTitle"></div>
+      <button class="btn-reset" id="resetBtn">↑ Upload New Statement</button>
+    </div>
+    <div class="kpi-row" id="kpiRow"></div>
+    <div class="two-col" id="summarySection"></div>
+    <div class="tx-card">
+      <div class="tx-head">
+        All Transactions
+        <span class="tx-tog" id="txTog">Hide</span>
+      </div>
+      <div id="txWrap">
+        <table class="tx">
+          <thead><tr><th>Date</th><th>Description</th><th>Category</th><th style="text-align:right">Amount</th></tr></thead>
+          <tbody id="txBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+var KEY_STORE = 'mint_api_key_v1';
+var txVisible = true;
+
+function getKey() { return localStorage.getItem(KEY_STORE) || ''; }
+
+function initApiKey() {
+  if (getKey()) {
+    document.getElementById('apiBanner').style.display = 'none';
+    document.getElementById('apiSaved').style.display = '';
+  }
+}
+
+document.getElementById('saveKeyBtn').addEventListener('click', function() {
+  var k = document.getElementById('apiKeyInput').value.trim();
+  if (!k) { alert('Please enter your API key.'); return; }
+  if (k.indexOf('sk-ant-') !== 0) { alert('Key should start with sk-ant-'); return; }
+  localStorage.setItem(KEY_STORE, k);
+  document.getElementById('apiBanner').style.display = 'none';
+  document.getElementById('apiSaved').style.display = '';
+});
+
+document.getElementById('changeKeyBtn').addEventListener('click', function() {
+  localStorage.removeItem(KEY_STORE);
+  document.getElementById('apiBanner').style.display = '';
+  document.getElementById('apiSaved').style.display = 'none';
+  document.getElementById('apiKeyInput').value = '';
+});
+
+document.getElementById('chooseBtn').addEventListener('click', function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  document.getElementById('fileInput').value = '';
+  document.getElementById('fileInput').click();
+});
+
+document.getElementById('fileInput').addEventListener('change', function() {
+  if (this.files && this.files[0]) {
+    handleFile(this.files[0]);
+  }
+});
+
+var uploadCard = document.getElementById('uploadCard');
+uploadCard.addEventListener('dragover', function(e) { e.preventDefault(); uploadCard.classList.add('drag-over'); });
+uploadCard.addEventListener('dragleave', function() { uploadCard.classList.remove('drag-over'); });
+uploadCard.addEventListener('drop', function(e) {
+  e.preventDefault();
+  uploadCard.classList.remove('drag-over');
+  var f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+
+document.getElementById('resetBtn').addEventListener('click', function() {
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('uploadCard').style.display = '';
+  document.getElementById('fileInput').value = '';
+});
+
+document.getElementById('txTog').addEventListener('click', function() {
+  txVisible = !txVisible;
+  document.getElementById('txWrap').style.display = txVisible ? '' : 'none';
+  this.textContent = txVisible ? 'Hide' : 'Show';
+});
+
+async function handleFile(file) {
+  var key = getKey();
+  if (!key) { alert('Please save your Anthropic API key first.'); return; }
+
+  showProgress('Extracting text from PDF...');
+  hideError();
+
+  var text;
+  try {
+    text = await extractText(file);
+  } catch(e) {
+    hideProgress();
+    showError('PDF extraction failed: ' + e.message);
+    return;
+  }
+
+  showProgress('Analyzing with Claude...');
+
+  var result;
+  try {
+    result = await callClaude(text, key);
+  } catch(e) {
+    hideProgress();
+    showError(e.message);
+    return;
+  }
+
+  hideProgress();
+  showResults(result);
+}
+
+async function extractText(file) {
+  var buf = await file.arrayBuffer();
+  var pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  var out = '';
+  for (var i = 1; i <= pdf.numPages; i++) {
+    var page = await pdf.getPage(i);
+    var content = await page.getTextContent();
+    var lastY = null;
+    for (var j = 0; j < content.items.length; j++) {
+      var item = content.items[j];
+      if (lastY !== null && Math.abs(item.transform[5] - lastY) > 2) out += '\n';
+      out += item.str + ' ';
+      lastY = item.transform[5];
+    }
+    out += '\n\n';
+  }
+  return out;
+}
+
+async function callClaude(statementText, apiKey) {
+  var systemPrompt = 'You are a bookkeeper for MINT Cleaning Pros LLC, a residential and commercial cleaning company in Thomasville, GA.\n\nAnalyze this bank statement and categorize all transactions for a P&L report.\n\nINCOME: "Service Revenue" - all deposits/client payments (Jobber, ACH, Zelle, checks)\n\nEXPENSES:\n- "Labor / Payroll" - Gusto, payroll, contractor payments\n- "Supplies" - Zep, Amazon, Walmart, supply vendors\n- "Software & Subscriptions" - Jobber, any software\n- "Marketing" - Facebook, Meta, Google ads\n- "Loan Repayment" - Jobber Capital, loans\n- "Fuel & Vehicle" - gas stations\n- "Insurance" - insurance premiums\n- "Owner Draw" - owner draw transfers\n- "Bank Fees" - service charges, fees\n- "Other Expenses" - everything else\n\nReturn ONLY valid JSON with no markdown, no backticks:\n{"period":"Month YYYY","opening_balance":0,"closing_balance":0,"transactions":[{"date":"MM/DD","description":"...","amount":0,"type":"income","category":"Service Revenue"}],"summary":{"total_income":0,"expenses_by_category":{"Labor / Payroll":0,"Supplies":0,"Software & Subscriptions":0,"Marketing":0,"Loan Repayment":0,"Fuel & Vehicle":0,"Insurance":0,"Owner Draw":0,"Bank Fees":0,"Other Expenses":0},"total_expenses":0,"net_income":0}}';
+
+  var body = JSON.stringify({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 4000,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: 'Bank statement:\n\n' + statementText }]
+  });
+
+  var controller = new AbortController();
+  var tid = setTimeout(function() { controller.abort(); }, 45000);
+
+  var response;
+  try {
+    response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: body
+    });
+    clearTimeout(tid);
+  } catch(e) {
+    clearTimeout(tid);
+    if (e.name === 'AbortError') throw new Error('Request timed out. The API may be blocked. Check the Network tab in DevTools for a CORS error.');
+    throw new Error('Network error: ' + e.message + ' — Check the Network tab in DevTools for details.');
+  }
+
+  if (!response.ok) {
+    var errData = await response.json().catch(function() { return {}; });
+    var msg = (errData.error && errData.error.message) ? errData.error.message : ('API error ' + response.status);
+    throw new Error(msg);
+  }
+
+  var data = await response.json();
+  var raw = '';
+  for (var i = 0; i < data.content.length; i++) {
+    if (data.content[i].type === 'text') { raw = data.content[i].text; break; }
+  }
+  var clean = raw.replace(/```json/g, '').replace(/```/g, '').trim();
+  try {
+    return JSON.parse(clean);
+  } catch(e) {
+    throw new Error('Could not parse Claude response: ' + clean.slice(0, 300));
+  }
+}
+
+function fmt(n) {
+  var abs = Math.abs(Number(n) || 0);
+  return '$' + abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function showResults(data) {
+  document.getElementById('uploadCard').style.display = 'none';
+  document.getElementById('results').style.display = '';
+  document.getElementById('periodTitle').textContent = data.period || 'Monthly P&L';
+
+  var net = data.summary.net_income;
+  document.getElementById('kpiRow').innerHTML =
+    '<div class="kpi-card inc"><div class="kpi-lbl">Total Revenue</div><div class="kpi-val pos">' + fmt(data.summary.total_income) + '</div></div>' +
+    '<div class="kpi-card exp"><div class="kpi-lbl">Total Expenses</div><div class="kpi-val neu">' + fmt(data.summary.total_expenses) + '</div></div>' +
+    '<div class="kpi-card ' + (net >= 0 ? 'netp' : 'netn') + '"><div class="kpi-lbl">Net Income</div><div class="kpi-val ' + (net >= 0 ? 'pos' : 'neg') + '">' + (net < 0 ? '-' : '') + fmt(net) + '</div></div>' +
+    '<div class="kpi-card"><div class="kpi-lbl">Closing Balance</div><div class="kpi-val neu">' + fmt(data.closing_balance) + '</div></div>';
+
+  var incRows = {};
+  for (var i = 0; i < data.transactions.length; i++) {
+    var t = data.transactions[i];
+    if (t.type === 'income') incRows[t.category] = (incRows[t.category] || 0) + t.amount;
+  }
+  var incHtml = '';
+  var cats = Object.keys(incRows);
+  for (var i = 0; i < cats.length; i++) {
+    incHtml += '<div class="cat-row"><span class="cat-name">' + cats[i] + '</span><span class="ca i">' + fmt(incRows[cats[i]]) + '</span></div>';
+  }
+  incHtml += '<div class="cat-row total"><span>Total Revenue</span><span class="ca i">' + fmt(data.summary.total_income) + '</span></div>';
+
+  var expCats = data.summary.expenses_by_category;
+  var expKeys = Object.keys(expCats).filter(function(k) { return expCats[k] > 0; });
+  expKeys.sort(function(a, b) { return expCats[b] - expCats[a]; });
+  var expHtml = '';
+  for (var i = 0; i < expKeys.length; i++) {
+    expHtml += '<div class="cat-row"><span class="cat-name">' + expKeys[i] + '</span><span class="ca e">' + fmt(expCats[expKeys[i]]) + '</span></div>';
+  }
+  expHtml += '<div class="cat-row total"><span>Total Expenses</span><span class="ca e">' + fmt(data.summary.total_expenses) + '</span></div>';
+
+  document.getElementById('summarySection').innerHTML =
+    '<div class="sec-card"><div class="sec-head">Revenue</div>' + incHtml + '</div>' +
+    '<div class="sec-card"><div class="sec-head dark">Expenses by Category</div>' + expHtml + '</div>';
+
+  var txs = data.transactions.slice().sort(function(a, b) { return (a.date || '').localeCompare(b.date || ''); });
+  var txHtml = '';
+  for (var i = 0; i < txs.length; i++) {
+    var tx = txs[i];
+    txHtml += '<tr><td>' + tx.date + '</td><td>' + tx.description + '</td>' +
+      '<td><span class="tc">' + tx.category + '</span></td>' +
+      '<td style="text-align:right" class="' + (tx.type === 'income' ? 'ti' : 'te') + '">' +
+      (tx.type === 'income' ? '' : '−') + fmt(tx.amount) + '</td></tr>';
+  }
+  document.getElementById('txBody').innerHTML = txHtml;
+}
+
+function showProgress(msg) {
+  document.getElementById('progMsg').textContent = msg;
+  document.getElementById('progressCard').style.display = '';
+}
+function hideProgress() { document.getElementById('progressCard').style.display = 'none'; }
+function showError(msg) {
+  document.getElementById('errorMsg').textContent = msg;
+  document.getElementById('errorCard').style.display = '';
+}
+function hideError() { document.getElementById('errorCard').style.display = 'none'; }
+
+initApiKey();
+</script>
+</body>
+</html>
