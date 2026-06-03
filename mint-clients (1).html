@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Database — MINT Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gd:#163d25;--gm:#1e5c38;--ga:#27ae60;--gl:#eef7f2;--gb:#c8dfd2;
+  --tp:#0f1f16;--ts:#4a6355;--tm:#8aab96;--bg:#f2f7f4;--card:#fff;
+  --shadow:0 1px 3px rgba(22,61,37,.07),0 4px 14px rgba(22,61,37,.06);
+  --r:10px;--font:'Plus Jakarta Sans',sans-serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--tp);min-height:100vh}
+.header{background:var(--gd);color:#fff;padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
+.brand{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.6}
+.title{font-size:1rem;font-weight:800}
+.back{font-size:.8rem;color:rgba(255,255,255,.6);text-decoration:none}
+.back:hover{color:#fff}
+.main{max-width:1200px;margin:0 auto;padding:2rem 1.5rem}
+
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.75rem}
+.sc{background:var(--card);border-radius:var(--r);padding:1.2rem 1.4rem;box-shadow:var(--shadow);border:1px solid var(--gb)}
+.sc .lbl{font-size:.69rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--tm);margin-bottom:.4rem}
+.sc .val{font-size:1.75rem;font-weight:800;color:var(--gd);letter-spacing:-.03em;line-height:1}
+.sc .sub{font-size:.77rem;color:var(--ts);margin-top:.3rem}
+
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
+.filter-row{display:flex;gap:.4rem;flex-wrap:wrap}
+.fb{padding:.38rem .85rem;border-radius:20px;border:1.5px solid var(--gb);background:#fff;font-family:var(--font);font-size:.79rem;font-weight:600;color:var(--ts);cursor:pointer;transition:all .15s}
+.fb:hover,.fb.active{background:var(--gd);border-color:var(--gd);color:#fff}
+.tr{display:flex;gap:.6rem;align-items:center}
+.btn-exp{padding:.45rem 1rem;border-radius:8px;border:1.5px solid var(--gb);background:#fff;font-family:var(--font);font-size:.8rem;font-weight:600;color:var(--ts);cursor:pointer}
+.btn-exp:hover{border-color:var(--gm);color:var(--gm)}
+.btn-add{padding:.48rem 1.1rem;border-radius:8px;border:none;background:var(--ga);color:#fff;font-family:var(--font);font-size:.85rem;font-weight:700;cursor:pointer}
+.btn-add:hover{background:#209c50}
+
+.table-wrap{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid var(--gb);overflow:hidden}
+table{width:100%;border-collapse:collapse}
+thead{background:var(--gd)}
+th{padding:.7rem 1rem;font-size:.69rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.85);text-align:left;white-space:nowrap}
+td{padding:.82rem 1rem;font-size:.87rem;border-bottom:1px solid var(--gb);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--gl)}
+
+.badge{display:inline-flex;align-items:center;padding:.2rem .65rem;border-radius:20px;font-size:.71rem;font-weight:700}
+.bc{background:#dbeafe;color:#1e40af}
+.br{background:#dcfce7;color:#166534}
+.bo{background:#fef3c7;color:#92400e}
+.ba{background:#dcfce7;color:#166534}
+.bi{background:#fee2e2;color:#991b1b}
+.bp{background:#fef3c7;color:#92400e}
+
+.rev{font-weight:700;color:var(--gm);font-variant-numeric:tabular-nums}
+.name-c{font-weight:600}
+.notes-c{font-size:.8rem;color:var(--ts);max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.freq-c{font-size:.82rem;color:var(--ts)}
+.billing-tag{font-size:.71rem;color:var(--tm);display:block;margin-top:.15rem}
+
+.abtns{display:flex;gap:.35rem}
+.ib{width:30px;height:30px;border-radius:6px;border:1px solid var(--gb);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.82rem;transition:all .15s;color:var(--ts)}
+.ib:hover{background:var(--gd);color:#fff;border-color:var(--gd)}
+.ib.del:hover{background:#dc2626;border-color:#dc2626}
+
+.empty{text-align:center;padding:3.5rem 2rem;color:var(--tm)}
+.empty .icon{font-size:2.5rem;margin-bottom:.75rem}
+
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:200;opacity:0;pointer-events:none;transition:opacity .18s;padding:1rem}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:#fff;border-radius:14px;padding:1.75rem;width:100%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.18);transform:translateY(16px);transition:transform .2s;max-height:90vh;overflow-y:auto}
+.overlay.open .modal{transform:translateY(0)}
+.modal-title{font-size:1.1rem;font-weight:800;color:var(--gd);margin-bottom:1.25rem}
+.fg{display:grid;gap:.85rem}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:.85rem}
+.field label{display:block;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ts);margin-bottom:.3rem}
+.field input,.field select,.field textarea{width:100%;padding:.58rem .85rem;border:1.5px solid var(--gb);border-radius:8px;font-family:var(--font);font-size:.87rem;color:var(--tp);transition:border-color .15s;background:#fff}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--ga)}
+.field textarea{resize:vertical;min-height:65px}
+
+.billing-toggle{display:flex;gap:.4rem;margin-bottom:.1rem}
+.bt-opt{flex:1;padding:.55rem;border-radius:7px;border:1.5px solid var(--gb);background:#fff;font-family:var(--font);font-size:.83rem;font-weight:600;color:var(--ts);cursor:pointer;text-align:center;transition:all .15s}
+.bt-opt.active{background:var(--gd);border-color:var(--gd);color:#fff}
+
+.per-clean-fields{display:none}
+.per-clean-fields.show{display:grid;gap:.85rem}
+.calc-preview{background:var(--gl);border:1px solid var(--gb);border-radius:8px;padding:.75rem 1rem;font-size:.84rem;color:var(--gm);font-weight:600;margin-top:.35rem}
+
+.mf{display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.4rem}
+.btn-cancel{padding:.52rem 1.1rem;border-radius:8px;border:1.5px solid var(--gb);background:#fff;font-family:var(--font);font-size:.84rem;font-weight:600;color:var(--ts);cursor:pointer}
+.btn-save{padding:.52rem 1.25rem;border-radius:8px;border:none;background:var(--gd);color:#fff;font-family:var(--font);font-size:.84rem;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<header class="header">
+  <div><div class="brand">MINT Cleaning Pros · Internal</div><div class="title">Client Database</div></div>
+  <a href="index.html" class="back">← Dashboard</a>
+</header>
+<main class="main">
+  <div class="summary-grid" id="summaryGrid"></div>
+  <div class="toolbar">
+    <div class="filter-row" id="filterRow">
+      <button class="fb active" data-filter="all">All Clients</button>
+      <button class="fb" data-filter="Active">Active</button>
+      <button class="fb" data-filter="Commercial">Commercial</button>
+      <button class="fb" data-filter="Residential">Residential</button>
+      <button class="fb" data-filter="One-Time">One-Time</button>
+    </div>
+    <div class="tr">
+      <button class="btn-exp" onclick="exportCSV()">Export CSV</button>
+      <button class="btn-add" onclick="openModal()">+ Add Client</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Client / Business</th><th>Type</th><th>Billing</th><th>Frequency</th>
+        <th>Est. MRR</th><th>Start Date</th><th>Status</th><th>Notes</th><th></th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div id="emptyState" class="empty" style="display:none">
+      <div class="icon">🧹</div><p>No clients yet. Add your first one above.</p>
+    </div>
+  </div>
+</main>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">Add Client</div>
+    <div class="fg">
+      <div class="field"><label>Client / Business Name *</label><input type="text" id="f-name" placeholder="e.g. Battery Source" /></div>
+      <div class="fr">
+        <div class="field"><label>Type</label><select id="f-type"><option>Commercial</option><option>Residential</option><option>One-Time</option></select></div>
+        <div class="field"><label>Status</label><select id="f-status"><option>Active</option><option>Inactive</option><option>On Pause</option></select></div>
+      </div>
+      <div class="field"><label>Frequency</label><select id="f-freq">
+        <option>Daily (5x/Week)</option>
+        <option>3x/Week</option>
+        <option>2x/Week</option>
+        <option>Weekly</option>
+        <option>Bi-Weekly</option>
+        <option>Every 3 Weeks</option>
+        <option>Monthly</option>
+        <option>Every 6 Weeks</option>
+        <option>Quarterly</option>
+        <option>As-Needed</option>
+        <option>One-Time</option>
+      </select></div>
+
+      <div class="field">
+        <label>Billing Type</label>
+        <div class="billing-toggle">
+          <button type="button" class="bt-opt active" id="bt-flat" onclick="setBilling('flat')">Flat Rate (Monthly)</button>
+          <button type="button" class="bt-opt" id="bt-per" onclick="setBilling('per')">Per Clean</button>
+        </div>
+      </div>
+
+      <!-- Flat rate -->
+      <div class="field" id="flatRateField">
+        <label>Monthly Revenue ($)</label>
+        <input type="number" id="f-flatrate" placeholder="0.00" step="0.01" min="0" oninput="updatePreview()" />
+      </div>
+
+      <!-- Per clean -->
+      <div class="per-clean-fields" id="perCleanFields">
+        <div class="fr">
+          <div class="field"><label>Rate Per Clean ($)</label><input type="number" id="f-rateperclean" placeholder="0.00" step="0.01" min="0" oninput="updatePreview()" /></div>
+          <div class="field"><label>Est. Cleans/Month</label><input type="number" id="f-cleanspermonth" placeholder="auto" step="0.1" min="0" oninput="updatePreview()" /></div>
+        </div>
+        <div class="calc-preview" id="calcPreview">Est. MRR: $0.00</div>
+      </div>
+
+      <div class="field"><label>Start Date</label><input type="date" id="f-start" /></div>
+      <div class="field"><label>Notes (optional)</label><textarea id="f-notes" placeholder="Contact name, location, special instructions..."></textarea></div>
+    </div>
+    <div class="mf">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveClient()">Save Client</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var KEY = 'mint_clients_v3';
+var clients = [];
+var editId = null;
+var filter = 'all';
+var billingMode = 'flat';
+
+var FREQ_CLEANS = {
+  'Daily (5x/Week)': 22,
+  '3x/Week': 13,
+  '2x/Week': 8.7,
+  'Weekly': 4.33,
+  'Bi-Weekly': 2.17,
+  'Every 3 Weeks': 1.44,
+  'Monthly': 1,
+  'Every 6 Weeks': 0.72,
+  'Quarterly': 0.33,
+  'As-Needed': 0,
+  'One-Time': 0
+};
+
+function load() { try { clients = JSON.parse(localStorage.getItem(KEY)||'[]'); } catch(e) { clients=[]; } }
+function save() { localStorage.setItem(KEY, JSON.stringify(clients)); }
+function fmt(n) { return '$'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtDate(d) { if(!d) return '—'; var p=d.split('-'); return p[1]+'/'+p[2]+'/'+p[0]; }
+
+function calcMRR(c) {
+  if (c.billingType === 'per') {
+    var cleans = parseFloat(c.cleansPerMonth) || 0;
+    return parseFloat(c.ratePerClean||0) * cleans;
+  }
+  return parseFloat(c.flatRate||0);
+}
+
+function setBilling(mode) {
+  billingMode = mode;
+  document.getElementById('bt-flat').classList.toggle('active', mode==='flat');
+  document.getElementById('bt-per').classList.toggle('active', mode==='per');
+  document.getElementById('flatRateField').style.display = mode==='flat' ? 'block' : 'none';
+  document.getElementById('perCleanFields').classList.toggle('show', mode==='per');
+  updatePreview();
+}
+
+function updatePreview() {
+  var rate = parseFloat(document.getElementById('f-rateperclean').value)||0;
+  var cleans = parseFloat(document.getElementById('f-cleanspermonth').value);
+  if (isNaN(cleans)) {
+    var freq = document.getElementById('f-freq').value;
+    cleans = FREQ_CLEANS[freq] || 0;
+  }
+  document.getElementById('calcPreview').textContent = 'Est. MRR: ' + fmt(rate * cleans) + ' (' + cleans.toFixed(1) + ' cleans/mo)';
+}
+
+// Auto-fill cleans when frequency changes
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('f-freq').addEventListener('change', function() {
+    if (billingMode === 'per' && !document.getElementById('f-cleanspermonth').value) {
+      updatePreview();
+    }
+  });
+});
+
+function renderSummary() {
+  var active = clients.filter(function(c){return c.status==='Active';});
+  var mrr = active.reduce(function(s,c){return s+calcMRR(c);},0);
+  var comm = active.filter(function(c){return c.type==='Commercial';});
+  var res = active.filter(function(c){return c.type==='Residential';});
+  var commMRR = comm.reduce(function(s,c){return s+calcMRR(c);},0);
+  var resMRR = res.reduce(function(s,c){return s+calcMRR(c);},0);
+  document.getElementById('summaryGrid').innerHTML =
+    '<div class="sc"><div class="lbl">Total MRR</div><div class="val">'+fmt(mrr)+'</div><div class="sub">'+active.length+' active client'+(active.length!==1?'s':'')+'</div></div>'+
+    '<div class="sc"><div class="lbl">Commercial MRR</div><div class="val">'+fmt(commMRR)+'</div><div class="sub">'+comm.length+' account'+(comm.length!==1?'s':'')+'</div></div>'+
+    '<div class="sc"><div class="lbl">Residential MRR</div><div class="val">'+fmt(resMRR)+'</div><div class="sub">'+res.length+' home'+(res.length!==1?'s':'')+'</div></div>'+
+    '<div class="sc"><div class="lbl">All Clients</div><div class="val">'+clients.length+'</div><div class="sub">'+clients.filter(function(c){return c.status!=='Active';}).length+' inactive/paused</div></div>';
+}
+
+function typeBadge(t) {
+  var m={Commercial:'bc',Residential:'br','One-Time':'bo'};
+  return '<span class="badge '+(m[t]||'bo')+'">'+t+'</span>';
+}
+function statusBadge(s) {
+  var m={Active:'ba',Inactive:'bi','On Pause':'bp'};
+  return '<span class="badge '+(m[s]||'bp')+'">'+s+'</span>';
+}
+
+function renderTable() {
+  var list = clients.filter(function(c) {
+    if (filter==='all') return true;
+    if (filter==='Active') return c.status==='Active';
+    return c.type===filter;
+  });
+  var tbody = document.getElementById('tbody');
+  var empty = document.getElementById('emptyState');
+  if (!list.length) { tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  tbody.innerHTML = list.map(function(c) {
+    var mrr = calcMRR(c);
+    var billingLabel = c.billingType==='per'
+      ? fmt(c.ratePerClean||0)+'/clean'
+      : 'Flat Rate';
+    return '<tr>'+
+      '<td class="name-c">'+c.name+'</td>'+
+      '<td>'+typeBadge(c.type)+'</td>'+
+      '<td><span style="font-size:.83rem">'+billingLabel+'</span></td>'+
+      '<td class="freq-c">'+c.frequency+'</td>'+
+      '<td class="rev">'+fmt(mrr)+'</td>'+
+      '<td>'+fmtDate(c.startDate)+'</td>'+
+      '<td>'+statusBadge(c.status)+'</td>'+
+      '<td class="notes-c" title="'+(c.notes||'')+'">'+(c.notes||'—')+'</td>'+
+      '<td><div class="abtns">'+
+        '<button class="ib" onclick="openModal(\''+c.id+'\')" title="Edit">✏️</button>'+
+        '<button class="ib del" onclick="deleteClient(\''+c.id+'\')" title="Delete">🗑</button>'+
+      '</div></td>'+
+      '</tr>';
+  }).join('');
+}
+
+function render() { renderSummary(); renderTable(); }
+
+function openModal(id) {
+  editId = id || null;
+  document.getElementById('modalTitle').textContent = id ? 'Edit Client' : 'Add Client';
+  if (id) {
+    var c = clients.find(function(x){return x.id===id;});
+    document.getElementById('f-name').value = c.name;
+    document.getElementById('f-type').value = c.type;
+    document.getElementById('f-status').value = c.status;
+    document.getElementById('f-freq').value = c.frequency;
+    document.getElementById('f-start').value = c.startDate||'';
+    document.getElementById('f-notes').value = c.notes||'';
+    var bt = c.billingType||'flat';
+    setBilling(bt);
+    if (bt==='per') {
+      document.getElementById('f-rateperclean').value = c.ratePerClean||'';
+      document.getElementById('f-cleanspermonth').value = c.cleansPerMonth||'';
+      updatePreview();
+    } else {
+      document.getElementById('f-flatrate').value = c.flatRate||'';
+    }
+  } else {
+    document.getElementById('f-name').value='';
+    document.getElementById('f-type').value='Commercial';
+    document.getElementById('f-status').value='Active';
+    document.getElementById('f-freq').value='Bi-Weekly';
+    document.getElementById('f-start').value='';
+    document.getElementById('f-notes').value='';
+    document.getElementById('f-flatrate').value='';
+    document.getElementById('f-rateperclean').value='';
+    document.getElementById('f-cleanspermonth').value='';
+    setBilling('flat');
+  }
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(function(){document.getElementById('f-name').focus();},50);
+}
+
+function closeModal() { document.getElementById('overlay').classList.remove('open'); editId=null; }
+
+function saveClient() {
+  var name = document.getElementById('f-name').value.trim();
+  if (!name) { alert('Client name is required.'); return; }
+  var freq = document.getElementById('f-freq').value;
+  var bt = billingMode;
+  var cleansRaw = document.getElementById('f-cleanspermonth').value;
+  var cleansVal = cleansRaw ? parseFloat(cleansRaw) : (FREQ_CLEANS[freq] || 0);
+  var data = {
+    name: name,
+    type: document.getElementById('f-type').value,
+    status: document.getElementById('f-status').value,
+    frequency: freq,
+    billingType: bt,
+    flatRate: bt==='flat' ? parseFloat(document.getElementById('f-flatrate').value)||0 : 0,
+    ratePerClean: bt==='per' ? parseFloat(document.getElementById('f-rateperclean').value)||0 : 0,
+    cleansPerMonth: bt==='per' ? cleansVal : 0,
+    startDate: document.getElementById('f-start').value,
+    notes: document.getElementById('f-notes').value.trim()
+  };
+  if (editId) {
+    var i = clients.findIndex(function(c){return c.id===editId;});
+    clients[i] = Object.assign({},clients[i],data);
+  } else {
+    clients.push(Object.assign({id:Date.now().toString()},data));
+  }
+  save(); closeModal(); render();
+}
+
+function deleteClient(id) {
+  if (!confirm('Remove this client?')) return;
+  clients = clients.filter(function(c){return c.id!==id;});
+  save(); render();
+}
+
+function exportCSV() {
+  var headers = ['Name','Type','Billing Type','Rate/Clean','Flat Rate','Cleans/Mo','Est MRR','Frequency','Start Date','Status','Notes'];
+  var rows = clients.map(function(c) {
+    return [c.name,c.type,c.billingType==='per'?'Per Clean':'Flat Rate',c.ratePerClean||0,c.flatRate||0,c.cleansPerMonth||0,calcMRR(c).toFixed(2),c.frequency,c.startDate,c.status,c.notes||''].map(function(v){return '"'+v+'"';}).join(',');
+  });
+  var csv = [headers.join(',')].concat(rows).join('\n');
+  var a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download = 'mint-clients-'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+document.getElementById('filterRow').addEventListener('click', function(e) {
+  var btn = e.target.closest('.fb');
+  if (!btn) return;
+  document.querySelectorAll('.fb').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  filter = btn.dataset.filter;
+  renderTable();
+});
+document.getElementById('overlay').addEventListener('click', function(e) {
+  if (e.target===document.getElementById('overlay')) closeModal();
+});
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeModal(); });
+
+load(); render();
+</script>
+</body>
+</html>
