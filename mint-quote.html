@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Residential Quote — MINT Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --green-dark: #163d25;
+  --green-mid: #1e5c38;
+  --green-accent: #27ae60;
+  --green-light: #eef7f2;
+  --green-border: #c8dfd2;
+  --text-primary: #0f1f16;
+  --text-secondary: #4a6355;
+  --text-muted: #8aab96;
+  --bg: #f2f7f4;
+  --card: #ffffff;
+  --shadow: 0 1px 3px rgba(22,61,37,.07), 0 4px 14px rgba(22,61,37,.06);
+  --radius: 12px;
+  --font: 'Plus Jakarta Sans', sans-serif;
+}
+body { font-family: var(--font); background: var(--bg); color: var(--text-primary); min-height: 100vh; }
+
+/* ── Header ── */
+.header {
+  background: var(--green-dark); padding: 2rem 2rem 0;
+  text-align: center;
+}
+.header .eyebrow {
+  font-size: .72rem; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; color: rgba(255,255,255,.45); margin-bottom: .5rem;
+}
+.header h1 { font-size: 1.8rem; font-weight: 800; color: white; letter-spacing: -.02em; margin-bottom: .3rem; }
+.header .sub { font-size: .84rem; color: rgba(255,255,255,.5); margin-bottom: 1.75rem; }
+.header-wave { height: 36px; background: var(--bg); border-radius: 36px 36px 0 0; margin: 0 -2rem; }
+.back-link {
+  position: absolute; top: 1.4rem; left: 1.5rem;
+  font-size: .78rem; font-weight: 600; color: rgba(255,255,255,.55);
+  text-decoration: none; display: flex; align-items: center; gap: .3rem;
+  transition: color .15s;
+}
+.back-link:hover { color: white; }
+
+/* ── Layout ── */
+.main { max-width: 560px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+/* ── Form card ── */
+.card {
+  background: var(--card); border-radius: var(--radius);
+  border: 1.5px solid var(--green-border);
+  box-shadow: var(--shadow);
+  padding: 1.75rem;
+  margin-bottom: 1rem;
+}
+
+.field { margin-bottom: 1.25rem; }
+.field:last-child { margin-bottom: 0; }
+
+label.field-label {
+  display: block;
+  font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: .6rem;
+}
+
+/* ── Segment buttons ── */
+.seg { display: flex; gap: 6px; }
+.seg-btn {
+  flex: 1; padding: 9px 6px; border-radius: 8px; cursor: pointer;
+  font-family: var(--font); font-size: .8rem; font-weight: 600;
+  border: 1.5px solid var(--green-border);
+  background: white; color: var(--text-secondary);
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  transition: all .13s;
+}
+.seg-btn .seg-icon { font-size: 1.1rem; }
+.seg-btn .seg-sub { font-size: .68rem; font-weight: 500; color: var(--text-muted); }
+.seg-btn.active {
+  border-color: var(--green-accent); background: var(--green-light);
+  color: var(--green-dark);
+}
+.seg-btn.active .seg-sub { color: var(--green-mid); }
+.seg-btn:hover:not(.active) { border-color: var(--green-mid); color: var(--green-dark); }
+
+/* ── Text / number input ── */
+.text-input {
+  width: 100%; padding: 10px 14px; border-radius: 8px;
+  border: 1.5px solid var(--green-border);
+  font-family: var(--font); font-size: .9rem; color: var(--text-primary);
+  background: white; transition: border-color .15s;
+}
+.text-input:focus { outline: none; border-color: var(--green-accent); box-shadow: 0 0 0 3px rgba(39,174,96,.12); }
+.text-input::placeholder { color: var(--text-muted); }
+
+.input-hint {
+  font-size: .72rem; color: var(--text-muted); margin-top: .4rem; line-height: 1.4;
+}
+
+/* ── Toggle ── */
+.toggle-row {
+  display: flex; align-items: center; gap: 12px; cursor: pointer;
+  padding: 10px 14px; border-radius: 8px; border: 1.5px solid var(--green-border);
+  background: white; transition: all .13s; user-select: none;
+}
+.toggle-row.on { border-color: var(--green-accent); background: var(--green-light); }
+.toggle-track {
+  width: 36px; height: 20px; border-radius: 10px;
+  background: #cce0d4; position: relative; flex-shrink: 0; transition: background .2s;
+}
+.toggle-row.on .toggle-track { background: var(--green-accent); }
+.toggle-thumb {
+  position: absolute; top: 3px; left: 3px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: white; transition: left .2s;
+}
+.toggle-row.on .toggle-thumb { left: 19px; }
+.toggle-label { font-size: .85rem; font-weight: 500; color: var(--text-secondary); }
+.toggle-row.on .toggle-label { color: var(--green-dark); }
+
+/* ── Calculate button ── */
+.calc-btn {
+  width: 100%; padding: 13px; border-radius: 9px; border: none;
+  background: var(--green-dark); color: white;
+  font-family: var(--font); font-size: .82rem; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; cursor: pointer;
+  transition: background .15s; margin-top: .25rem;
+}
+.calc-btn:hover { background: var(--green-mid); }
+
+/* ── Error ── */
+.error-box {
+  padding: 10px 14px; border-radius: 8px;
+  background: #fef2f2; border: 1px solid #fecaca;
+  font-size: .82rem; color: #dc2626; margin-top: .75rem;
+  display: none;
+}
+
+/* ── Result card ── */
+.result-card {
+  background: var(--card); border-radius: var(--radius);
+  border: 1.5px solid var(--green-border);
+  box-shadow: var(--shadow);
+  overflow: hidden; display: none;
+  margin-bottom: 1rem;
+}
+.result-header {
+  background: var(--green-dark); padding: 1.4rem 1.75rem;
+}
+.result-header .result-service {
+  font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  color: rgba(255,255,255,.45); margin-bottom: .5rem;
+}
+.price-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+.price-block {
+  flex: 1; min-width: 110px;
+  background: rgba(255,255,255,.07); border-radius: 8px;
+  padding: 12px 14px; border: 1px solid rgba(255,255,255,.1);
+}
+.price-block .pb-label {
+  font-size: .65rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: rgba(255,255,255,.45); margin-bottom: 4px;
+}
+.price-block .pb-amount {
+  font-size: 1.9rem; font-weight: 800; color: white; line-height: 1;
+  letter-spacing: -.02em;
+}
+.price-block .pb-sub {
+  font-size: .7rem; color: rgba(255,255,255,.4); margin-top: 3px;
+}
+.price-block.accent { background: var(--green-accent); border-color: transparent; }
+.price-block.accent .pb-label { color: rgba(255,255,255,.6); }
+.price-block.accent .pb-sub { color: rgba(255,255,255,.65); }
+
+.result-details { padding: 1.25rem 1.75rem; }
+.detail-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid var(--green-border);
+  font-size: .84rem;
+}
+.detail-row:last-child { border-bottom: none; }
+.detail-row .dk { color: var(--text-muted); }
+.detail-row .dv { font-weight: 700; color: var(--text-primary); }
+
+.rate-note {
+  font-size: .72rem; color: var(--text-muted); margin-top: 1rem;
+  padding: 9px 12px; background: var(--green-light); border-radius: 7px;
+  line-height: 1.55;
+}
+
+/* ── Action buttons ── */
+.action-row { display: flex; gap: 8px; padding: 0 1.75rem 1.5rem; }
+.copy-btn {
+  flex: 1; padding: 11px; border-radius: 8px; border: none;
+  background: var(--green-accent); color: white;
+  font-family: var(--font); font-size: .78rem; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase; cursor: pointer;
+  transition: background .15s;
+}
+.copy-btn:hover { background: var(--green-mid); }
+.reset-btn {
+  flex: 1; padding: 11px; border-radius: 8px;
+  border: 1.5px solid var(--green-border); background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font); font-size: .78rem; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase; cursor: pointer;
+  transition: all .15s;
+}
+.reset-btn:hover { border-color: var(--green-mid); color: var(--green-dark); }
+
+/* ── Rate card reference ── */
+.rate-card {
+  background: var(--card); border-radius: var(--radius);
+  border: 1.5px solid var(--green-border);
+  overflow: hidden;
+}
+.rate-card summary {
+  padding: 1rem 1.4rem; cursor: pointer; list-style: none;
+  font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-muted); display: flex; align-items: center; gap: .4rem;
+  user-select: none;
+}
+.rate-card summary:hover { color: var(--green-mid); }
+.rate-card summary::before { content: '▸'; font-size: .6rem; transition: transform .15s; }
+details[open] .rate-card summary::before { transform: rotate(90deg); }
+.rate-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: 8px; padding: 0 1.2rem 1.2rem;
+}
+.rate-cell {
+  background: var(--green-light); border-radius: 7px; padding: 9px 11px;
+}
+.rate-cell .rc-label { font-size: .68rem; color: var(--text-muted); margin-bottom: 3px; }
+.rate-cell .rc-val { font-size: .88rem; font-weight: 700; color: var(--green-dark); }
+.rate-cell .rc-floor { font-size: .68rem; color: var(--green-accent); margin-top: 1px; }
+
+/* ── Footer ── */
+.footer {
+  text-align: center; padding: 1.5rem;
+  font-size: .75rem; color: var(--text-muted);
+  border-top: 1px solid var(--green-border);
+}
+</style>
+</head>
+<body>
+
+<header class="header" style="position:relative;">
+  <a class="back-link" href="index.html">← Dashboard</a>
+  <div class="eyebrow">MINT Cleaning Pros · Internal</div>
+  <h1>Residential Quote</h1>
+  <p class="sub">Internal use only — not for client-facing display</p>
+  <div class="header-wave"></div>
+</header>
+
+<main class="main">
+
+  <!-- ── Input card ── -->
+  <div class="card" id="formCard">
+
+    <!-- Service type -->
+    <div class="field">
+      <label class="field-label">Service type</label>
+      <div class="seg" id="serviceGroup">
+        <button class="seg-btn active" data-val="recurring">
+          <span class="seg-icon">↻</span>
+          <span>Recurring</span>
+          <span class="seg-sub">Weekly / Bi-wkly / Monthly</span>
+        </button>
+        <button class="seg-btn" data-val="deep">
+          <span class="seg-icon">✦</span>
+          <span>Deep Clean</span>
+          <span class="seg-sub">One-time detail</span>
+        </button>
+        <button class="seg-btn" data-val="moveout">
+          <span class="seg-icon">⬡</span>
+          <span>Move-Out</span>
+          <span class="seg-sub">Full empty-home</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Square footage -->
+    <div class="field">
+      <label class="field-label" for="sqftInput">Square footage</label>
+      <input class="text-input" type="number" id="sqftInput" min="1" placeholder="e.g. 1,850" />
+      <div class="input-hint">Enter the actual or estimated square footage of the home.</div>
+    </div>
+
+    <!-- Frequency (recurring only) -->
+    <div class="field" id="freqField">
+      <label class="field-label">Frequency</label>
+      <div class="seg" id="freqGroup">
+        <button class="seg-btn" data-val="weekly">
+          <span>Weekly</span>
+          <span class="seg-sub">−10%</span>
+        </button>
+        <button class="seg-btn active" data-val="biweekly">
+          <span>Bi-weekly</span>
+          <span class="seg-sub">base rate</span>
+        </button>
+        <button class="seg-btn" data-val="monthly">
+          <span>Monthly</span>
+          <span class="seg-sub">+15%</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Pets -->
+    <div class="field">
+      <label class="field-label">Modifiers</label>
+      <div class="toggle-row" id="petsToggle">
+        <div class="toggle-track"><div class="toggle-thumb"></div></div>
+        <span class="toggle-label">Pets in the home (+8%)</span>
+      </div>
+    </div>
+
+    <div class="error-box" id="errorBox"></div>
+
+    <div class="field" style="margin-top:1rem;">
+      <button class="calc-btn" id="calcBtn">Calculate Quote</button>
+    </div>
+
+  </div>
+
+  <!-- ── Result card ── -->
+  <div class="result-card" id="resultCard">
+    <div class="result-header">
+      <div class="result-service" id="resultService"></div>
+      <div class="price-grid" id="priceGrid"></div>
+    </div>
+    <div class="result-details">
+      <div id="detailRows"></div>
+      <div class="rate-note" id="rateNote"></div>
+    </div>
+    <div class="action-row">
+      <button class="copy-btn" id="copyBtn">Copy Quote</button>
+      <button class="reset-btn" id="resetBtn">New Quote</button>
+    </div>
+  </div>
+
+  <!-- ── Rate card reference ── -->
+  <details>
+    <div class="rate-card">
+      <summary>Rate card reference</summary>
+      <div class="rate-grid">
+        <div class="rate-cell"><div class="rc-label">Recurring</div><div class="rc-val">$0.085/sqft</div><div class="rc-floor">$150 floor</div></div>
+        <div class="rate-cell"><div class="rc-label">Initial Clean</div><div class="rc-val">1.4× bi-wkly</div><div class="rc-floor">$225 floor</div></div>
+        <div class="rate-cell"><div class="rc-label">Deep Clean</div><div class="rc-val">$0.18/sqft</div><div class="rc-floor">$250 floor</div></div>
+        <div class="rate-cell"><div class="rc-label">Move-Out</div><div class="rc-val">$0.35/sqft</div><div class="rc-floor">$350 floor</div></div>
+        <div class="rate-cell"><div class="rc-label">Pets</div><div class="rc-val">+8%</div></div>
+        <div class="rate-cell"><div class="rc-label">Weekly adj.</div><div class="rc-val">−10%</div></div>
+        <div class="rate-cell"><div class="rc-label">Monthly adj.</div><div class="rc-val">+15%</div></div>
+      </div>
+    </div>
+  </details>
+
+</main>
+
+<footer class="footer">
+  MINT Cleaning Pros · Internal Tools
+</footer>
+
+<script>
+// ── Pricing engine ──────────────────────────────────────────────────────────
+const FREQ_ADJ = { weekly: -0.10, biweekly: 0, monthly: 0.15 };
+
+function r5(n) { return Math.ceil(n / 5) * 5; }
+
+function calcRecurring(sqft, freq, pets) {
+  let base = sqft * 0.085 * (1 + FREQ_ADJ[freq]);
+  if (pets) base *= 1.08;
+  return Math.max(r5(base), 150);
+}
+function calcInitial(sqft, pets) {
+  let base = sqft * 0.085 * 1.4;
+  if (pets) base *= 1.08;
+  return Math.max(r5(base), 225);
+}
+function calcDeep(sqft, pets) {
+  let base = sqft * 0.18;
+  if (pets) base *= 1.08;
+  return Math.max(r5(base), 250);
+}
+function calcMoveOut(sqft, pets) {
+  let base = sqft * 0.35;
+  if (pets) base *= 1.08;
+  return Math.max(r5(base), 350);
+}
+
+// ── State ───────────────────────────────────────────────────────────────────
+let service  = 'recurring';
+let freq     = 'biweekly';
+let pets     = false;
+let lastText = '';
+
+// ── DOM refs ────────────────────────────────────────────────────────────────
+const sqftInput   = document.getElementById('sqftInput');
+const freqField   = document.getElementById('freqField');
+const petsToggle  = document.getElementById('petsToggle');
+const errorBox    = document.getElementById('errorBox');
+const calcBtn     = document.getElementById('calcBtn');
+const formCard    = document.getElementById('formCard');
+const resultCard  = document.getElementById('resultCard');
+const resultSvc   = document.getElementById('resultService');
+const priceGrid   = document.getElementById('priceGrid');
+const detailRows  = document.getElementById('detailRows');
+const rateNote    = document.getElementById('rateNote');
+const copyBtn     = document.getElementById('copyBtn');
+const resetBtn    = document.getElementById('resetBtn');
+
+// ── Service segment ─────────────────────────────────────────────────────────
+document.getElementById('serviceGroup').addEventListener('click', function(e) {
+  const btn = e.target.closest('.seg-btn');
+  if (!btn) return;
+  service = btn.dataset.val;
+  this.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  freqField.style.display = service === 'recurring' ? '' : 'none';
+});
+
+// ── Frequency segment ────────────────────────────────────────────────────────
+document.getElementById('freqGroup').addEventListener('click', function(e) {
+  const btn = e.target.closest('.seg-btn');
+  if (!btn) return;
+  freq = btn.dataset.val;
+  this.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+});
+
+// ── Pets toggle ──────────────────────────────────────────────────────────────
+petsToggle.addEventListener('click', function() {
+  pets = !pets;
+  this.classList.toggle('on', pets);
+});
+
+// ── Calculate ────────────────────────────────────────────────────────────────
+calcBtn.addEventListener('click', function() {
+  errorBox.style.display = 'none';
+  const sqft = parseInt(sqftInput.value, 10);
+  if (!sqftInput.value || isNaN(sqft) || sqft < 100) {
+    errorBox.textContent = 'Please enter a valid square footage (at least 100 sq ft).';
+    errorBox.style.display = 'block';
+    return;
+  }
+
+  const freqLabels   = { weekly: 'Weekly', biweekly: 'Bi-weekly', monthly: 'Monthly' };
+  const freqSublabel = { weekly: 'per week', biweekly: 'every 2 weeks', monthly: 'per month' };
+  const petNote      = pets ? ' · Pets (+8%)' : '';
+  const sqftFmt      = sqft.toLocaleString();
+
+  priceGrid.innerHTML = '';
+  detailRows.innerHTML = '';
+
+  if (service === 'recurring') {
+    const rec     = calcRecurring(sqft, freq, pets);
+    const ini     = calcInitial(sqft, pets);
+    const monthly = freq === 'weekly' ? rec * 4 : freq === 'biweekly' ? rec * 2 : rec;
+    const annual  = monthly * 12;
+
+    resultSvc.textContent = `Recurring Clean · ${freqLabels[freq]}${petNote}`;
+
+    priceGrid.innerHTML = `
+      <div class="price-block accent">
+        <div class="pb-label">Initial Clean</div>
+        <div class="pb-amount">$${ini}</div>
+        <div class="pb-sub">first visit</div>
+      </div>
+      <div class="price-block accent">
+        <div class="pb-label">Recurring</div>
+        <div class="pb-amount">$${rec}</div>
+        <div class="pb-sub">${freqSublabel[freq]}</div>
+      </div>
+      <div class="price-block">
+        <div class="pb-label">Monthly Est.</div>
+        <div class="pb-amount">$${monthly.toLocaleString()}</div>
+        <div class="pb-sub">avg / mo</div>
+      </div>
+    `;
+
+    detailRows.innerHTML = `
+      <div class="detail-row"><span class="dk">Square footage</span><span class="dv">${sqftFmt} sq ft</span></div>
+      <div class="detail-row"><span class="dk">Frequency</span><span class="dv">${freqLabels[freq]}</span></div>
+      <div class="detail-row"><span class="dk">Pets</span><span class="dv">${pets ? 'Yes (+8%)' : 'No'}</span></div>
+      <div class="detail-row"><span class="dk">Annual value</span><span class="dv">$${annual.toLocaleString()}</span></div>
+    `;
+
+    const adjPct = FREQ_ADJ[freq];
+    rateNote.innerHTML = `Rate: $0.085/sqft${adjPct !== 0 ? ` × ${adjPct > 0 ? '+' : ''}${adjPct * 100}% freq adj` : ''}${pets ? ' × 1.08 pet' : ''} · Initial = 1.4× bi-weekly base · Floors: $150 recurring / $225 initial`;
+
+    lastText = `MINT Cleaning Pros — Residential Quote\nService: Recurring Clean (${freqLabels[freq]})\nSquare footage: ${sqftFmt} sq ft${pets ? ' · Pets' : ''}\nInitial clean: $${ini}\nRecurring: $${rec} ${freqSublabel[freq]}\nMonthly est.: $${monthly.toLocaleString()}/mo\nAnnual value: $${annual.toLocaleString()}`;
+
+  } else {
+    const price     = service === 'deep' ? calcDeep(sqft, pets) : calcMoveOut(sqft, pets);
+    const svcLabel  = service === 'deep' ? 'Deep Clean' : 'Move-Out Clean';
+    const rate      = service === 'deep' ? '$0.18/sqft' : '$0.35/sqft';
+    const floorAmt  = service === 'deep' ? '$250' : '$350';
+
+    resultSvc.textContent = `${svcLabel}${petNote}`;
+
+    priceGrid.innerHTML = `
+      <div class="price-block accent">
+        <div class="pb-label">${svcLabel}</div>
+        <div class="pb-amount">$${price}</div>
+        <div class="pb-sub">one-time</div>
+      </div>
+    `;
+
+    detailRows.innerHTML = `
+      <div class="detail-row"><span class="dk">Square footage</span><span class="dv">${sqftFmt} sq ft</span></div>
+      <div class="detail-row"><span class="dk">Pets</span><span class="dv">${pets ? 'Yes (+8%)' : 'No'}</span></div>
+    `;
+
+    rateNote.innerHTML = `Rate: ${rate}${pets ? ' × 1.08 pet' : ''} · Floor: ${floorAmt}`;
+
+    lastText = `MINT Cleaning Pros — Residential Quote\nService: ${svcLabel}\nSquare footage: ${sqftFmt} sq ft${pets ? ' · Pets' : ''}\nPrice: $${price} (one-time)`;
+  }
+
+  formCard.style.display = 'none';
+  resultCard.style.display = 'block';
+});
+
+// ── Copy ─────────────────────────────────────────────────────────────────────
+copyBtn.addEventListener('click', function() {
+  navigator.clipboard.writeText(lastText).catch(() => {});
+  this.textContent = '✓ Copied';
+  setTimeout(() => { this.textContent = 'Copy Quote'; }, 2000);
+});
+
+// ── Reset ────────────────────────────────────────────────────────────────────
+resetBtn.addEventListener('click', function() {
+  resultCard.style.display = 'none';
+  formCard.style.display = 'block';
+});
+</script>
+
+</body>
+</html>
