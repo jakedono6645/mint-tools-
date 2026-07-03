@@ -420,7 +420,7 @@ async function extractText(file) {
 async function callClaude(statementText, apiKey) {
   var sys = 'You are a bookkeeper for MINT Cleaning Pros LLC, a residential and commercial cleaning company in Thomasville, GA.\n\nAnalyze this bank statement and categorize all transactions for a P&L report.\n\nINCOME: "Service Revenue" - all deposits/client payments (Jobber, ACH, Zelle, checks)\n\nEXPENSES:\n- "Labor / Payroll" - Gusto, payroll, contractor payments, checks to employees\n- "Supplies" - Zep, Amazon, Walmart, Lowes, supply vendors\n- "Software & Subscriptions" - Jobber, any software\n- "Marketing" - Facebook, Meta, Google, Vistaprint, ads\n- "Loan Repayment" - Jobber Capital, loans, financing\n- "Fuel & Vehicle" - gas stations, auto payments\n- "Insurance" - Hanover, NEXT, any insurance premiums\n- "Owner Draw" - transfers to x9301, x8942, or any personal account labeled draw\n- "Bank Fees" - service charges, ATM fees\n- "Other Expenses" - everything else\n\nReturn ONLY valid JSON, no markdown:\n{"period":"Month YYYY","opening_balance":0,"closing_balance":0,"transactions":[{"date":"MM/DD","description":"...","amount":0,"type":"income","category":"Service Revenue"}],"summary":{"total_income":0,"expenses_by_category":{"Labor / Payroll":0,"Supplies":0,"Software & Subscriptions":0,"Marketing":0,"Loan Repayment":0,"Fuel & Vehicle":0,"Insurance":0,"Owner Draw":0,"Bank Fees":0,"Other Expenses":0},"total_expenses":0,"net_income":0}}';
   var body = JSON.stringify({
-    model:'claude-sonnet-5', max_tokens:8000, system:sys,
+    model:'claude-sonnet-5', max_tokens:8000, thinking:{type:'disabled'}, system:sys,
     messages:[{role:'user',content:'Bank statement:\n\n'+statementText}]
   });
   var controller = new AbortController();
