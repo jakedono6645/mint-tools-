@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P&L Analyzer — MINT Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gd:#163d25;--gm:#1e5c38;--ga:#27ae60;--gl:#eef7f2;--gb:#c8dfd2;
+  --tp:#0f1f16;--ts:#4a6355;--tm:#8aab96;--bg:#f2f7f4;--card:#fff;
+  --shadow:0 1px 3px rgba(22,61,37,.07),0 4px 14px rgba(22,61,37,.06);
+  --r:10px;--font:'Plus Jakarta Sans',sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--tp);min-height:100vh}
+.header{background:var(--gd);color:#fff;padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
+.header .brand{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.6}
+.header .htitle{font-size:1rem;font-weight:800}
+.back{font-size:.8rem;color:rgba(255,255,255,.6);text-decoration:none}
+.back:hover{color:#fff}
+.main{max-width:1000px;margin:0 auto;padding:2rem 1.5rem}
+.tabs{display:flex;gap:.25rem;background:var(--card);border:1px solid var(--gb);border-radius:var(--r);padding:.3rem;margin-bottom:1.75rem;width:fit-content}
+.tab{padding:.45rem 1.1rem;border-radius:7px;border:none;font-family:var(--font);font-size:.84rem;font-weight:600;color:var(--ts);background:none;cursor:pointer;transition:all .15s}
+.tab.active{background:var(--gd);color:#fff}
+.build-tag{font-size:.68rem;color:var(--tm);margin-bottom:1rem;font-family:var(--mono)}
+.api-banner{background:#fffbeb;border:1.5px solid #fcd34d;border-radius:var(--r);padding:1.1rem 1.4rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.api-banner .lbl{font-size:.85rem;font-weight:700;color:#92400e;flex-shrink:0}
+.api-banner input{flex:1;min-width:240px;padding:.5rem .85rem;border:1.5px solid #fcd34d;border-radius:7px;font-family:var(--font);font-size:.84rem;background:#fff}
+.api-banner input:focus{outline:none;border-color:#f59e0b}
+.btn-savekey{padding:.48rem 1rem;border-radius:7px;border:none;background:#92400e;color:#fff;font-family:var(--font);font-size:.82rem;font-weight:700;cursor:pointer}
+.api-saved{margin-bottom:1.25rem;font-size:.84rem;color:var(--gm);font-weight:600}
+.chg{color:var(--tm);cursor:pointer;text-decoration:underline;font-weight:400;margin-left:.5rem}
+.upload-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:2px dashed var(--gb);padding:2.5rem;text-align:center;margin-bottom:1.5rem;transition:border-color .2s,background .2s}
+.upload-card.drag-over{border-color:var(--ga);background:var(--gl)}
+.upload-icon{font-size:2.5rem;margin-bottom:.75rem}
+.upload-title{font-size:1rem;font-weight:700;color:var(--gd);margin-bottom:.35rem}
+.upload-sub{font-size:.84rem;color:var(--ts);margin-bottom:1.25rem;line-height:1.55}
+.btn-upload{padding:.55rem 1.4rem;border-radius:8px;border:none;background:var(--gd);color:#fff;font-family:var(--font);font-size:.85rem;font-weight:700;cursor:pointer}
+.btn-upload:hover{background:var(--gm)}
+.progress-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid var(--gb);padding:1.75rem;margin-bottom:1.5rem;display:none;text-align:center}
+.spinner{width:40px;height:40px;border:3px solid var(--gb);border-top-color:var(--ga);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 1rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+.prog-msg{font-size:.9rem;color:var(--ts);font-weight:500}
+.prog-sub{font-size:.78rem;color:var(--tm);margin-top:.4rem;font-variant-numeric:tabular-nums}
+.error-card{background:#fff5f5;border:1.5px solid #fca5a5;border-radius:var(--r);padding:1.25rem 1.5rem;margin-bottom:1.5rem;display:none}
+.error-title{font-weight:700;color:#dc2626;margin-bottom:.35rem}
+.error-msg{font-size:.85rem;color:#7f1d1d}
+
+/* Reconciliation banner */
+.recon{border-radius:var(--r);padding:1rem 1.3rem;margin-bottom:1.5rem;display:none;font-size:.87rem;line-height:1.55}
+.recon.ok{background:var(--gl);border:1.5px solid var(--ga);color:var(--gm)}
+.recon.bad{background:#fffbeb;border:1.5px solid #fcd34d;color:#78350f}
+.recon .rtitle{font-weight:800;margin-bottom:.3rem;display:flex;align-items:center;gap:.45rem}
+.recon code{font-family:var(--mono);font-size:.82rem;background:rgba(255,255,255,.6);padding:.1rem .35rem;border-radius:4px}
+
+.result-panel{display:none}
+.result-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem}
+.result-title{font-size:1.35rem;font-weight:800;color:var(--gd);letter-spacing:-.02em}
+.result-actions{display:flex;gap:.6rem}
+.btn-sm{padding:.42rem .9rem;border-radius:7px;border:1.5px solid var(--gb);background:#fff;font-family:var(--font);font-size:.79rem;font-weight:600;color:var(--ts);cursor:pointer;transition:all .15s}
+.btn-sm:hover{border-color:var(--gm);color:var(--gm)}
+.btn-sm.primary{background:var(--gd);border-color:var(--gd);color:#fff}
+.btn-sm.primary:hover{background:var(--gm);border-color:var(--gm)}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem;margin-bottom:1.5rem}
+.kpi-card{background:var(--card);border-radius:var(--r);padding:1.1rem 1.3rem;box-shadow:var(--shadow);border:1px solid var(--gb)}
+.kpi-card.inc{border-left:4px solid var(--ga)}.kpi-card.exp{border-left:4px solid #f59e0b}
+.kpi-card.netp{border-left:4px solid var(--ga)}.kpi-card.netn{border-left:4px solid #dc2626}
+.kpi-lbl{font-size:.69rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--tm);margin-bottom:.35rem}
+.kpi-val{font-size:1.6rem;font-weight:800;letter-spacing:-.02em;line-height:1}
+.kpi-val.pos{color:var(--gm)}.kpi-val.neg{color:#dc2626}.kpi-val.neu{color:var(--gd)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem}
+@media(max-width:640px){.two-col{grid-template-columns:1fr}}
+.sec-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid var(--gb);overflow:hidden}
+.sec-head{padding:.85rem 1.1rem;background:var(--gd);color:#fff;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.sec-head.dark{background:#374151}
+.cat-row{display:flex;justify-content:space-between;align-items:center;padding:.7rem 1.1rem;border-bottom:1px solid var(--gb);font-size:.87rem}
+.cat-row:last-child{border-bottom:none}.cat-row.total{border-top:2px solid var(--gb);font-weight:700}
+.cat-name{color:var(--ts)}.ca{font-weight:700;font-variant-numeric:tabular-nums}
+.ca.i{color:var(--gm)}.ca.e{color:#374151}
+.tx-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid var(--gb);overflow:hidden;margin-bottom:1.5rem}
+.tx-head{padding:.85rem 1.1rem;background:var(--gd);color:#fff;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;display:flex;justify-content:space-between;align-items:center}
+.tx-tog{font-size:.75rem;font-weight:600;color:rgba(255,255,255,.7);cursor:pointer;text-decoration:underline;text-transform:none;letter-spacing:0}
+.tx-hint{font-size:.72rem;color:var(--tm);padding:.5rem 1rem;background:#fafcfa;border-bottom:1px solid var(--gb);font-style:italic}
+table.tx{width:100%;border-collapse:collapse}
+table.tx th{padding:.6rem 1rem;font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tm);text-align:left;border-bottom:1px solid var(--gb)}
+table.tx td{padding:.72rem 1rem;font-size:.84rem;border-bottom:1px solid var(--gb);vertical-align:top}
+table.tx tr:last-child td{border-bottom:none}
+table.tx tbody tr:hover{background:var(--gl)}
+.ti{color:var(--gm);font-weight:700}.te{color:#374151;font-weight:700}
+.tdesc{font-size:.83rem}
+.tdesc .sub{display:block;color:var(--tm);font-size:.72rem;margin-top:.15rem}
+.tc{font-size:.75rem;background:var(--gl);color:var(--ts);padding:.2rem .6rem;border-radius:8px;font-weight:600;cursor:pointer;border:1.5px solid transparent;transition:all .15s;display:inline-block;white-space:nowrap}
+.tc:hover{border-color:var(--ga);background:#d4f0e0}
+.cat-sel{font-size:.78rem;padding:.2rem .5rem;border-radius:7px;border:1.5px solid var(--ga);font-family:var(--font);color:var(--ts);background:#fff;cursor:pointer;outline:none}
+
+.diag-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid var(--gb);overflow:hidden;margin-bottom:1.5rem;display:none}
+.diag-head{padding:.85rem 1.1rem;background:#374151;color:#fff;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}
+.diag-head .caret{font-size:.7rem;opacity:.7;text-transform:none;letter-spacing:0}
+.diag-body{padding:1.1rem;display:none}
+.diag-body.open{display:block}
+.diag-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.7rem}
+.diag-item{background:var(--gl);border-radius:8px;padding:.6rem .8rem}
+.diag-item.bad{background:#fee2e2}
+.diag-k{font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tm);margin-bottom:.2rem}
+.diag-v{font-size:.95rem;font-weight:800;color:var(--gd);font-variant-numeric:tabular-nums;word-break:break-word}
+.diag-item.bad .diag-v{color:#dc2626}
+.diag-lbl{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tm);margin:1.1rem 0 .4rem;display:flex;justify-content:space-between;align-items:center;gap:.6rem}
+.copy-btn{background:#fff;border:1.5px solid var(--gb);border-radius:6px;padding:.22rem .65rem;font-family:var(--font);font-size:.68rem;font-weight:700;color:var(--ts);cursor:pointer;text-transform:none;letter-spacing:0}
+.copy-btn:hover{border-color:var(--gm);color:var(--gm)}
+pre.diag-pre{background:#0f1f16;color:#c8dfd2;padding:.9rem;border-radius:8px;font-size:.71rem;line-height:1.55;max-height:340px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-family:var(--mono)}
+
+.history-panel{display:none}
+.range-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem}
+.range-btns{display:flex;gap:.3rem;flex-wrap:wrap}
+.range-btn{padding:.38rem .85rem;border-radius:20px;border:1.5px solid var(--gb);background:#fff;font-family:var(--font);font-size:.79rem;font-weight:600;color:var(--ts);cursor:pointer;transition:all .15s}
+.range-btn.active,.range-btn:hover{background:var(--gd);border-color:var(--gd);color:#fff}
+.history-count{font-size:.82rem;color:var(--tm)}
+.agg-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1.75rem}
+.agg-sub{font-size:.78rem;color:var(--ts);margin-top:.3rem}
+.month-table-wrap{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid var(--gb);overflow:hidden;margin-bottom:1.5rem}
+table.mt{width:100%;border-collapse:collapse}
+table.mt thead{background:var(--gd)}
+table.mt th{padding:.7rem 1rem;font-size:.69rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.85);text-align:left;white-space:nowrap}
+table.mt th:not(:first-child){text-align:right}
+table.mt td{padding:.82rem 1rem;font-size:.86rem;border-bottom:1px solid var(--gb);font-variant-numeric:tabular-nums}
+table.mt td:not(:first-child){text-align:right}
+table.mt tr:last-child td{border-bottom:none}
+table.mt tbody tr:hover{background:var(--gl)}
+table.mt .pos{color:var(--gm);font-weight:700}
+table.mt .neg{color:#dc2626;font-weight:700}
+table.mt .mn{font-weight:700;color:var(--gd)}
+table.mt tfoot td{font-weight:800;border-top:2px solid var(--gb);background:var(--gl)}
+.cat-history{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid var(--gb);overflow:hidden;margin-bottom:1.5rem}
+.cat-history-head{padding:.85rem 1.1rem;background:#374151;color:#fff;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+table.ch{width:100%;border-collapse:collapse;font-size:.83rem}
+table.ch th{padding:.6rem .9rem;font-size:.67rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tm);text-align:right;border-bottom:1px solid var(--gb);white-space:nowrap}
+table.ch th:first-child{text-align:left}
+table.ch td{padding:.68rem .9rem;border-bottom:1px solid var(--gb);text-align:right;font-variant-numeric:tabular-nums}
+table.ch td:first-child{text-align:left;color:var(--ts);font-weight:600}
+table.ch tr:last-child td{border-bottom:none}
+table.ch tbody tr:hover{background:var(--gl)}
+.empty-hist{text-align:center;padding:3rem;color:var(--tm)}
+.empty-hist .icon{font-size:2.5rem;margin-bottom:.75rem}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--tm);font-size:.85rem;padding:.15rem .35rem;border-radius:4px;transition:all .15s}
+.del-btn:hover{color:#dc2626;background:#fee2e2}
+</style>
+</head>
+<body>
+<header class="header">
+  <div><div class="brand">MINT Cleaning Pros · Internal</div><div class="htitle">P&amp;L Analyzer</div></div>
+  <a href="index.html" class="back">← Dashboard</a>
+</header>
+<main class="main">
+  <div class="tabs">
+    <button class="tab active" id="tabUpload">Upload Statement</button>
+    <button class="tab" id="tabHistory">Financial History</button>
+  </div>
+  <div class="build-tag">build 2026-08-21b · deterministic-parse v3 · AI categorises only</div>
+
+  <div id="uploadPanel">
+    <div class="api-banner" id="apiBanner">
+      <span class="lbl">🔑 Anthropic API Key</span>
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-..." />
+      <button class="btn-savekey" id="saveKeyBtn">Save Key</button>
+    </div>
+    <div id="apiSaved" style="display:none" class="api-saved">
+      ✓ API key saved<span class="chg" id="changeKeyBtn">Change</span>
+    </div>
+    <div class="upload-card" id="uploadCard">
+      <div class="upload-icon">📄</div>
+      <div class="upload-title">Upload TNB Bank Statement</div>
+      <div class="upload-sub">Drag &amp; drop your PDF here, or click Choose PDF.<br>Each statement is saved automatically to your financial history.</div>
+      <button class="btn-upload" id="chooseBtn">Choose PDF</button>
+      <input type="file" id="fileInput" accept=".pdf" style="display:none" />
+    </div>
+    <div class="progress-card" id="progressCard">
+      <div class="spinner"></div>
+      <div class="prog-msg" id="progMsg">Processing...</div>
+      <div class="prog-sub" id="progSub"></div>
+    </div>
+    <div class="error-card" id="errorCard">
+      <div class="error-title">Something went wrong</div>
+      <div class="error-msg" id="errorMsg"></div>
+    </div>
+
+    <div class="recon" id="reconCard">
+      <div class="rtitle" id="reconTitle"></div>
+      <div id="reconBody"></div>
+    </div>
+
+    <div class="diag-card" id="diagCard">
+      <div class="diag-head" id="diagHead">
+        <span>🔍 Diagnostics — what the tool actually saw</span>
+        <span class="caret" id="diagCaret">show ▾</span>
+      </div>
+      <div class="diag-body" id="diagBody">
+        <div class="diag-grid" id="diagGrid"></div>
+        <div class="diag-lbl">
+          <span>Text extracted from the PDF</span>
+          <button class="copy-btn" id="copyTextBtn">Copy all</button>
+        </div>
+        <pre class="diag-pre" id="diagText"></pre>
+        <div class="diag-lbl">
+          <span>Vendor signatures sent for categorising</span>
+          <button class="copy-btn" id="copySigBtn">Copy all</button>
+        </div>
+        <pre class="diag-pre" id="diagSigs"></pre>
+        <div class="diag-lbl">
+          <span>Raw model response</span>
+          <button class="copy-btn" id="copyRawBtn">Copy all</button>
+        </div>
+        <pre class="diag-pre" id="diagRaw"></pre>
+      </div>
+    </div>
+
+    <div class="result-panel" id="resultPanel">
+      <div class="result-header">
+        <div class="result-title" id="resultTitle"></div>
+        <div class="result-actions">
+          <button class="btn-sm" id="uploadAnother">↑ Upload Another</button>
+          <button class="btn-sm primary" id="viewHistBtn">View History →</button>
+        </div>
+      </div>
+      <div class="kpi-row" id="kpiRow"></div>
+      <div class="two-col" id="summarySection"></div>
+      <div class="tx-card">
+        <div class="tx-head">All Transactions <span class="tx-tog" id="txTog">Hide</span></div>
+        <div class="tx-hint">Click any category badge to correct it. Dates and amounts come straight from the statement and are not guessed.</div>
+        <div id="txWrap">
+          <table class="tx">
+            <thead><tr><th>Date</th><th>Description</th><th>Category</th><th style="text-align:right">Amount</th></tr></thead>
+            <tbody id="txBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="history-panel" id="historyPanel">
+    <div class="range-bar">
+      <div class="range-btns" id="rangeBtns">
+        <button class="range-btn" data-months="3">3 Months</button>
+        <button class="range-btn" data-months="6">6 Months</button>
+        <button class="range-btn" data-months="9">9 Months</button>
+        <button class="range-btn" data-months="12">12 Months</button>
+        <button class="range-btn active" data-months="0">All Time</button>
+      </div>
+      <span class="history-count" id="historyCount"></span>
+    </div>
+    <div id="emptyHist" class="empty-hist" style="display:none">
+      <div class="icon">📊</div><p>No statements saved yet. Upload a bank statement to get started.</p>
+    </div>
+    <div id="histContent">
+      <div class="agg-kpis" id="aggKpis"></div>
+      <div class="month-table-wrap">
+        <table class="mt">
+          <thead><tr>
+            <th>Month</th>
+            <th style="text-align:right">Revenue</th>
+            <th style="text-align:right">Expenses</th>
+            <th style="text-align:right">Net Income</th>
+            <th style="text-align:right">Labor %</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="monthBody"></tbody>
+          <tfoot id="monthFoot"></tfoot>
+        </table>
+      </div>
+      <div class="cat-history">
+        <div class="cat-history-head">Expense Categories by Month</div>
+        <div style="overflow-x:auto"><table class="ch" id="catTable"></table></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+var KEY_STORE = 'mint_api_key_v1';
+var PL_STORE = 'mint_pl_history_v1';
+var API_TIMEOUT_MS = 120000;
+var txVisible = true;
+var activeRange = 0;
+var diag = {};
+
+var ALL_CATS = ['Service Revenue','Labor / Payroll','Supplies','Software & Subscriptions','Marketing','Loan Repayment','Fuel & Vehicle','Insurance','Owner Draw','Bank Fees','Other Expenses'];
+var EXP_CATS = ALL_CATS.slice(1);
+var INCOME_CATS = ['Service Revenue'];
+var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+// ---- Storage ----
+function getKey(){ return localStorage.getItem(KEY_STORE)||''; }
+function loadHistory(){ try{ return JSON.parse(localStorage.getItem(PL_STORE)||'[]'); }catch(e){ return []; } }
+function saveEntry(d){
+  var h = loadHistory().filter(function(x){ return x.period!==d.period; });
+  h.push(d);
+  h.sort(function(a,b){ return parsePeriod(a.period)-parsePeriod(b.period); });
+  localStorage.setItem(PL_STORE, JSON.stringify(h));
+}
+function deleteEntry(p){
+  localStorage.setItem(PL_STORE, JSON.stringify(loadHistory().filter(function(x){ return x.period!==p; })));
+}
+function parsePeriod(s){
+  var p=(s||'').trim().split(/\s+/);
+  if(p.length===2){ var m=MONTHS.indexOf(p[0]), y=parseInt(p[1],10); if(m>=0&&!isNaN(y)) return new Date(y,m,1).getTime(); }
+  return 0;
+}
+function filterRange(h,months){
+  if(!months) return h;
+  var c=new Date(); c.setMonth(c.getMonth()-months);
+  return h.filter(function(x){ return parsePeriod(x.period)>=c.getTime(); });
+}
+
+// ============================================================
+//  DETERMINISTIC STATEMENT PARSER
+//  Dates, amounts and transaction counts are read directly from
+//  the statement text. No model involvement, so they cannot drift.
+// ============================================================
+var SEC = { NONE:0, DEPOSITS:1, DEBITS:2, CHECKS:3, DAILY:4 };
+var AMT='([\\d,]+\\.\\d{2})', DATE='(\\d{1,2}\\/\\d{1,2})';
+var RE_CREDIT=new RegExp('^'+DATE+'\\s+(.+?)\\s+'+AMT+'$');
+var RE_DEBIT =new RegExp('^'+DATE+'\\s+(.+?)\\s+'+AMT+'-$');
+var RE_CHECK1=new RegExp('^'+DATE+'\\s+(\\d+\\*?)\\s+'+AMT);
+var RE_CHECK2=new RegExp('^'+DATE+'\\s+(\\d+\\*?)\\s+'+AMT+'\\s+'+DATE+'\\s+(\\d+\\*?)\\s+'+AMT+'$');
+
+function num(s){ return parseFloat(String(s).replace(/,/g,'')); }
+function round2(n){ return Math.round(n*100)/100; }
+
+function isNoise(l){
+  if(!l) return true;
+  if(/^=====\s*PAGE/.test(l)) return true;
+  if(/^\*+$/.test(l)) return true;
+  if(/^P\.O\. Box/i.test(l)) return true;
+  if(/^www\./i.test(l)) return true;
+  if(/Account Number/i.test(l)&&/Enclosures|^\d/.test(l)) return true;
+  if(/^Date\s+Description\s+Amount$/i.test(l)) return true;
+  if(/^Date\s+Check No/i.test(l)) return true;
+  if(/^Date\s+Balance/i.test(l)) return true;
+  if(/\(Continued\)/i.test(l)) return true;
+  if(/^\*\s*Indicates Skip/i.test(l)) return true;
+  if(/^Mint Cleaning Pros LLC\s+Date/i.test(l)) return true;
+  if(/^\d+ GA Highway/i.test(l)) return true;
+  if(/^Thomasville GA \d{5}/i.test(l)) return true;
+  return false;
+}
+function sectionOf(l){
+  if(/^DEPOSITS AND DESCRIPTIVE CREDITS/i.test(l)) return SEC.DEPOSITS;
+  if(/^DESCRIPTIVE DEBITS/i.test(l)) return SEC.DEBITS;
+  if(/^CHECKS$/i.test(l)) return SEC.CHECKS;
+  if(/^DAILY BALANCE INFORMATION/i.test(l)) return SEC.DAILY;
+  return null;
+}
+
+function parseStatement(text){
+  var lines=text.split('\n');
+  var section=SEC.NONE, txs=[], last=null;
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i].trim();
+    var s=sectionOf(line);
+    if(s!==null){ section=s; last=null; continue; }
+    if(isNoise(line)) continue;
+    if(section===SEC.NONE||section===SEC.DAILY) continue;
+
+    if(section===SEC.CHECKS){
+      var m2=line.match(RE_CHECK2);
+      if(m2){
+        txs.push({date:m2[1],description:'Check #'+m2[2],amount:num(m2[3]),kind:'check'});
+        txs.push({date:m2[4],description:'Check #'+m2[5],amount:num(m2[6]),kind:'check'});
+        continue;
+      }
+      var m1=line.match(RE_CHECK1);
+      if(m1) txs.push({date:m1[1],description:'Check #'+m1[2],amount:num(m1[3]),kind:'check'});
+      continue;
+    }
+    if(section===SEC.DEBITS){
+      var d=line.match(RE_DEBIT);
+      if(d){ last={date:d[1],description:d[2].trim(),detail:'',amount:num(d[3]),kind:'debit'}; txs.push(last); continue; }
+    }
+    if(section===SEC.DEPOSITS){
+      var c=line.match(RE_CREDIT);
+      if(c){ last={date:c[1],description:c[2].trim(),detail:'',amount:num(c[3]),kind:'credit'}; txs.push(last); continue; }
+    }
+    if(last && !/^TRACE-/i.test(line)){
+      last.detail += (last.detail?' | ':'') + line.replace(/\s{2,}/g,' ').trim();
+    }
+  }
+  return txs;
+}
+
+// Statement metadata, also read directly rather than inferred.
+function parseMeta(text){
+  var meta={};
+  var sd=text.match(/Statement Dates\s+(\d{1,2})\/(\d{1,2})\/(\d{2})/i);
+  if(sd){
+    var mo=parseInt(sd[1],10)-1, yr=2000+parseInt(sd[3],10);
+    if(mo>=0&&mo<12) meta.period=MONTHS[mo]+' '+yr;
+  }
+  if(!meta.period){
+    var hd=text.match(/Date\s+(\d{1,2})\/(\d{1,2})\/(\d{2})/);
+    if(hd){ var m2=parseInt(hd[1],10)-1; if(m2>=0&&m2<12) meta.period=MONTHS[m2]+' '+(2000+parseInt(hd[3],10)); }
+  }
+  var pb=text.match(/Previous Balance\s+([\d,]+\.\d{2})/i);
+  var eb=text.match(/Ending Balance\s+([\d,]+\.\d{2})/i);
+  meta.opening_balance = pb?num(pb[1]):0;
+  meta.closing_balance = eb?num(eb[1]):0;
+  var dc=text.match(/(\d+)\s+Deposits\s*\/\s*Credits\s+([\d,]+\.\d{2})/i);
+  var kc=text.match(/(\d+)\s+Checks\s*\/\s*Debits\s+([\d,]+\.\d{2})/i);
+  if(dc){ meta.statedCreditCount=parseInt(dc[1],10); meta.statedCreditTotal=num(dc[2]); }
+  if(kc){ meta.statedDebitCount=parseInt(kc[1],10); meta.statedDebitTotal=num(kc[2]); }
+  return meta;
+}
+
+// A stable signature per vendor, so 17 Lowe's trips become one lookup.
+function signature(t){
+  if(t.kind==='check') return 'PAPER CHECK';
+  var d=(t.description+' '+(t.detail||'')).toUpperCase();
+  d=d.replace(/\b\d{2}\/\d{2}\/\d{2}\b/g,' ')
+     .replace(/\bC#\*+\d+/g,' ')
+     .replace(/\b\d{6,}\b/g,' ')
+     .replace(/#\s*\d+/g,' ')
+     .replace(/\s+/g,' ').trim();
+  return d;
+}
+
+// ---- API key ----
+function initApiKey(){ if(getKey()){ document.getElementById('apiBanner').style.display='none'; document.getElementById('apiSaved').style.display='block'; } }
+document.getElementById('saveKeyBtn').addEventListener('click',function(){
+  var k=document.getElementById('apiKeyInput').value.trim();
+  if(!k){ alert('Please enter your API key.'); return; }
+  localStorage.setItem(KEY_STORE,k);
+  document.getElementById('apiBanner').style.display='none';
+  document.getElementById('apiSaved').style.display='block';
+});
+document.getElementById('changeKeyBtn').addEventListener('click',function(){
+  localStorage.removeItem(KEY_STORE);
+  document.getElementById('apiBanner').style.display='block';
+  document.getElementById('apiSaved').style.display='none';
+  document.getElementById('apiKeyInput').value='';
+});
+
+// ---- Tabs ----
+function setTab(t){
+  document.getElementById('tabUpload').classList.toggle('active',t==='upload');
+  document.getElementById('tabHistory').classList.toggle('active',t==='history');
+  document.getElementById('uploadPanel').style.display=t==='upload'?'block':'none';
+  document.getElementById('historyPanel').style.display=t==='history'?'block':'none';
+  if(t==='history') renderHistory();
+}
+document.getElementById('tabUpload').addEventListener('click',function(){ setTab('upload'); });
+document.getElementById('tabHistory').addEventListener('click',function(){ setTab('history'); });
+
+// ---- Upload wiring ----
+document.getElementById('chooseBtn').addEventListener('click',function(e){
+  e.preventDefault(); e.stopPropagation();
+  document.getElementById('fileInput').value='';
+  document.getElementById('fileInput').click();
+});
+document.getElementById('fileInput').addEventListener('change',function(){ if(this.files&&this.files[0]) handleFile(this.files[0]); });
+var uCard=document.getElementById('uploadCard');
+uCard.addEventListener('dragover',function(e){ e.preventDefault(); uCard.classList.add('drag-over'); });
+uCard.addEventListener('dragleave',function(){ uCard.classList.remove('drag-over'); });
+uCard.addEventListener('drop',function(e){ e.preventDefault(); uCard.classList.remove('drag-over'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+document.getElementById('uploadAnother').addEventListener('click',function(){
+  document.getElementById('resultPanel').style.display='none';
+  document.getElementById('uploadCard').style.display='block';
+  document.getElementById('fileInput').value='';
+});
+document.getElementById('viewHistBtn').addEventListener('click',function(){ setTab('history'); });
+document.getElementById('txTog').addEventListener('click',function(){
+  txVisible=!txVisible;
+  document.getElementById('txWrap').style.display=txVisible?'block':'none';
+  this.textContent=txVisible?'Hide':'Show';
+});
+
+// ---- Diagnostics ----
+document.getElementById('diagHead').addEventListener('click',function(){
+  var b=document.getElementById('diagBody');
+  var o=b.classList.toggle('open');
+  document.getElementById('diagCaret').textContent=o?'hide ▴':'show ▾';
+});
+function fallbackCopy(t){
+  var ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  document.body.removeChild(ta);
+}
+function copyToClipboard(t,btn){
+  var done=function(){ var o=btn.textContent; btn.textContent='Copied ✓'; setTimeout(function(){ btn.textContent=o; },1400); };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done,function(){ fallbackCopy(t); done(); });
+  else { fallbackCopy(t); done(); }
+}
+document.getElementById('copyTextBtn').addEventListener('click',function(e){ e.stopPropagation(); copyToClipboard(diag.text||'',this); });
+document.getElementById('copySigBtn').addEventListener('click',function(e){ e.stopPropagation(); copyToClipboard((diag.sigs||[]).join('\n'),this); });
+document.getElementById('copyRawBtn').addEventListener('click',function(e){ e.stopPropagation(); copyToClipboard(diag.raw||'',this); });
+
+function renderDiag(open){
+  var g='';
+  function item(k,v,bad){ g+='<div class="diag-item'+(bad?' bad':'')+'"><div class="diag-k">'+k+'</div><div class="diag-v">'+v+'</div></div>'; }
+  item('PDF pages',diag.pages!=null?diag.pages:'—');
+  item('Text rows',diag.rows!=null?diag.rows:'—');
+  item('Characters',diag.chars!=null?diag.chars.toLocaleString():'—');
+  item('Credits parsed',(diag.credits!=null?diag.credits:'—')+' / '+(diag.statedCreditCount!=null?diag.statedCreditCount:'?'),
+       diag.credits!=null&&diag.statedCreditCount!=null&&diag.credits!==diag.statedCreditCount);
+  item('Debits+checks',(diag.debitsChecks!=null?diag.debitsChecks:'—')+' / '+(diag.statedDebitCount!=null?diag.statedDebitCount:'?'),
+       diag.debitsChecks!=null&&diag.statedDebitCount!=null&&diag.debitsChecks!==diag.statedDebitCount);
+  item('Vendors categorised',diag.sigCount!=null?diag.sigCount:'—');
+  item('Stop reason',diag.stopReason||'—',diag.stopReason==='max_tokens');
+  item('Output tokens',diag.outTokens!=null?diag.outTokens.toLocaleString():'—');
+  item('Elapsed',diag.elapsed!=null?diag.elapsed+'s':'—');
+  document.getElementById('diagGrid').innerHTML=g;
+  document.getElementById('diagText').textContent=diag.text||'(nothing extracted)';
+  document.getElementById('diagSigs').textContent=(diag.sigs||[]).join('\n')||'(none)';
+  document.getElementById('diagRaw').textContent=diag.raw||'(no response)';
+  document.getElementById('diagCard').style.display='block';
+  if(open){ document.getElementById('diagBody').classList.add('open'); document.getElementById('diagCaret').textContent='hide ▴'; }
+}
+
+// ---- Range ----
+document.getElementById('rangeBtns').addEventListener('click',function(e){
+  var b=e.target.closest('.range-btn'); if(!b) return;
+  document.querySelectorAll('.range-btn').forEach(function(x){ x.classList.remove('active'); });
+  b.classList.add('active');
+  activeRange=parseInt(b.dataset.months,10);
+  renderHistory();
+});
+
+// ---- Category editing ----
+document.getElementById('txBody').addEventListener('click',function(e){
+  var span=e.target.closest('.tc'); if(!span) return;
+  var idx=parseInt(span.dataset.idx,10), period=span.dataset.period, current=span.textContent.trim();
+  var sel=document.createElement('select'); sel.className='cat-sel';
+  ALL_CATS.forEach(function(c){ var o=document.createElement('option'); o.value=c; o.textContent=c; if(c===current) o.selected=true; sel.appendChild(o); });
+  span.parentNode.replaceChild(sel,sel.parentNode?span:span); sel.focus();
+  var done=false;
+  function commit(){
+    if(done) return; done=true;
+    var nc=sel.value;
+    var ns=document.createElement('span'); ns.className='tc'; ns.textContent=nc; ns.dataset.idx=idx; ns.dataset.period=period;
+    if(sel.parentNode) sel.parentNode.replaceChild(ns,sel);
+    var hist=loadHistory();
+    var entry=hist.find(function(h){ return h.period===period; });
+    if(entry&&entry.transactions[idx]){
+      entry.transactions[idx].category=nc;
+      entry.transactions[idx].type=(INCOME_CATS.indexOf(nc)!==-1)?'income':'expense';
+      entry.summary=computeSummary(entry.transactions);
+      localStorage.setItem(PL_STORE,JSON.stringify(hist));
+      renderSummaryCols(entry); renderKpis(entry); renderTxTable(entry);
+    }
+  }
+  sel.addEventListener('change',commit);
+  sel.addEventListener('blur',commit);
+});
+
+// ---- Core flow ----
+async function handleFile(file){
+  var key=getKey();
+  if(!key){ alert('Please save your Anthropic API key first.'); return; }
+  diag={};
+  document.getElementById('uploadCard').style.display='none';
+  document.getElementById('resultPanel').style.display='none';
+  document.getElementById('diagCard').style.display='none';
+  document.getElementById('reconCard').style.display='none';
+  hideError();
+
+  showProgress('Reading the PDF...');
+  var text;
+  try{ text=await extractText(file); }
+  catch(e){ hideProgress(); document.getElementById('uploadCard').style.display='block'; showError('PDF extraction failed: '+e.message); renderDiag(true); return; }
+  diag.text=text; diag.chars=text.length;
+
+  showProgress('Parsing transactions...');
+  var meta=parseMeta(text);
+  var txs=parseStatement(text);
+  diag.statedCreditCount=meta.statedCreditCount; diag.statedDebitCount=meta.statedDebitCount;
+  diag.credits=txs.filter(function(t){ return t.kind==='credit'; }).length;
+  diag.debitsChecks=txs.filter(function(t){ return t.kind!=='credit'; }).length;
+
+  if(!txs.length){
+    hideProgress(); document.getElementById('uploadCard').style.display='block';
+    showError('No transactions could be parsed from this statement. Open Diagnostics to see the extracted text — if the layout differs from a standard TNB statement, the parser needs adjusting.');
+    renderDiag(true); return;
+  }
+
+  // One lookup per distinct vendor, not per transaction.
+  var sigs=[]; var sigIndex={};
+  txs.forEach(function(t){
+    var s=signature(t);
+    if(sigIndex[s]===undefined){ sigIndex[s]=sigs.length; sigs.push(s); }
+    t._sig=s;
+  });
+  diag.sigs=sigs; diag.sigCount=sigs.length;
+
+  showProgress('Categorising '+sigs.length+' vendors with Claude...');
+  var started=Date.now();
+  var ticker=setInterval(function(){ setProgressSub(Math.round((Date.now()-started)/1000)+'s elapsed'); },1000);
+  var catMap;
+  try{ catMap=await categorise(sigs,key); }
+  catch(e){
+    clearInterval(ticker); diag.elapsed=Math.round((Date.now()-started)/1000);
+    hideProgress(); document.getElementById('uploadCard').style.display='block';
+    showError(e.message); renderDiag(true); return;
+  }
+  clearInterval(ticker);
+  diag.elapsed=Math.round((Date.now()-started)/1000);
+  hideProgress();
+
+  // Direction comes from the statement's own +/- sign, never from the model.
+  txs.forEach(function(t){
+    var c=catMap[t._sig];
+    if(t.kind==='credit'){ t.category='Service Revenue'; t.type='income'; }
+    else { t.category=(c&&EXP_CATS.indexOf(c)!==-1)?c:'Other Expenses'; t.type='expense'; }
+    delete t._sig;
+  });
+
+  var entry={
+    period: meta.period||'Unknown Period',
+    opening_balance: meta.opening_balance,
+    closing_balance: meta.closing_balance,
+    transactions: txs,
+    summary: computeSummary(txs),
+    _recon: reconcile(txs,meta)
+  };
+  saveEntry(entry);
+  showResult(entry);
+  renderDiag(!entry._recon.allOk);
+}
+
+async function extractText(file){
+  var buf=await file.arrayBuffer();
+  var pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  diag.pages=pdf.numPages;
+  var all=[];
+  for(var i=1;i<=pdf.numPages;i++){
+    showProgress('Reading the PDF...','Page '+i+' of '+pdf.numPages);
+    var page=await pdf.getPage(i);
+    var content=await page.getTextContent();
+    var items=content.items.map(function(it){ return {str:it.str,x:it.transform[4],y:it.transform[5],width:it.width}; });
+    all.push('===== PAGE '+i+' =====');
+    all=all.concat(buildRows(items));
+  }
+  diag.rows=all.length;
+  return all.join('\n');
+}
+
+// Bucket text items into visual rows, then order within each row.
+function buildRows(items){
+  var rows=[], TOL=2.5;
+  for(var i=0;i<items.length;i++){
+    var it=items[i];
+    if(!it.str||!it.str.trim()) continue;
+    var placed=false;
+    for(var j=rows.length-1;j>=0;j--){
+      if(Math.abs(rows[j].y-it.y)<=TOL){ rows[j].items.push(it); placed=true; break; }
+    }
+    if(!placed) rows.push({y:it.y,items:[it]});
+  }
+  rows.sort(function(a,b){ return b.y-a.y; });
+  return rows.map(function(row){
+    row.items.sort(function(a,b){ return a.x-b.x; });
+    var out='', prevEnd=null;
+    row.items.forEach(function(it){
+      if(prevEnd!==null){ var gap=it.x-prevEnd; if(gap>12) out+='   '; else if(gap>1) out+=' '; }
+      out+=it.str; prevEnd=it.x+(it.width||0);
+    });
+    return out.replace(/\s+$/,'');
+  }).filter(function(s){ return s.trim().length>0; });
+}
+
+// ---- Categorisation: the only thing the model does ----
+var CAT_SCHEMA = {
+  type:"object",
+  properties:{
+    assignments:{
+      type:"array",
+      items:{
+        type:"object",
+        properties:{ index:{type:"integer"}, category:{type:"string",enum:EXP_CATS} },
+        required:["index","category"],
+        additionalProperties:false
+      }
+    }
+  },
+  required:["assignments"],
+  additionalProperties:false
+};
+
+async function categorise(sigs,apiKey){
+  var sys='You categorise bank transaction descriptions for MINT Cleaning Pros LLC, a residential and commercial cleaning company in Thomasville, GA.\n\n'+
+    'You will receive a numbered list of vendor descriptions. Return one assignment for EVERY index in the list, using the index numbers exactly as given.\n\n'+
+    'CATEGORIES:\n'+
+    '- "Labor / Payroll" — PAYROLL SERVICE, Gusto, contractor payments\n'+
+    '- "Supplies" — Zep, Amazon, Walmart, Wal-Mart, WM Supercenter, Lowe\'s, Home Depot, cleaning supply vendors\n'+
+    '- "Software & Subscriptions" — Jobber, Wix, Anthropic, Claude, any SaaS\n'+
+    '- "Marketing" — Google Ads, Facebook, Meta, Vistaprint, advertising\n'+
+    '- "Loan Repayment" — Jobber Capital, loans, financing\n'+
+    '- "Fuel & Vehicle" — Circle K, gas stations, Toyota Financial, auto payments\n'+
+    '- "Insurance" — Hanover, NEXT Insurance, any insurance premium\n'+
+    '- "Owner Draw" — transfers to x9301 or x8942, or anything labelled draw\n'+
+    '- "Bank Fees" — service charges, ATM fees\n'+
+    '- "Other Expenses" — storage rental, paper checks, and anything you cannot confidently place\n\n'+
+    'A description reading "PAPER CHECK" is an individual cheque with no vendor information: assign "Other Expenses".';
+  var list=sigs.map(function(s,i){ return i+': '+s; }).join('\n');
+
+  var body=JSON.stringify({
+    model:'claude-sonnet-5',
+    max_tokens:4000,
+    thinking:{type:'disabled'},
+    system:sys,
+    messages:[{role:'user',content:'Categorise each of these '+sigs.length+' descriptions:\n\n'+list}],
+    output_config:{format:{type:'json_schema',schema:CAT_SCHEMA}}
+  });
+
+  var ctrl=new AbortController();
+  var tid=setTimeout(function(){ ctrl.abort(); },API_TIMEOUT_MS);
+  var res;
+  try{
+    res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',signal:ctrl.signal,
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:body
+    });
+    clearTimeout(tid);
+  }catch(e){
+    clearTimeout(tid);
+    if(e.name==='AbortError') throw new Error('Request timed out after '+Math.round(API_TIMEOUT_MS/1000)+' seconds.');
+    throw new Error('Network error: '+e.message);
+  }
+  if(!res.ok){
+    var et=await res.text().catch(function(){ return ''; });
+    diag.raw=et;
+    var msg='API error '+res.status;
+    try{ var ej=JSON.parse(et); if(ej.error&&ej.error.message) msg=ej.error.message; }catch(e){}
+    throw new Error(msg);
+  }
+  var data=await res.json();
+  diag.stopReason=data.stop_reason;
+  if(data.usage){ diag.inTokens=data.usage.input_tokens; diag.outTokens=data.usage.output_tokens; }
+  var raw='';
+  for(var i=0;i<data.content.length;i++){ if(data.content[i].type==='text'){ raw=data.content[i].text; break; } }
+  diag.raw=raw;
+  var parsed;
+  try{ parsed=JSON.parse(raw); }
+  catch(e){ throw new Error('Could not parse the categorisation response. Open Diagnostics to see the raw text.'); }
+
+  // Any vendor the model skips simply falls back to Other Expenses.
+  // A miss costs one mislabelled row, never a missing transaction.
+  var map={};
+  (parsed.assignments||[]).forEach(function(a){
+    if(a && typeof a.index==='number' && sigs[a.index]!==undefined) map[sigs[a.index]]=a.category;
+  });
+  return map;
+}
+
+// ---- Reconciliation against the statement's own figures ----
+function reconcile(txs,meta){
+  var cred=txs.filter(function(t){ return t.kind==='credit'; });
+  var deb=txs.filter(function(t){ return t.kind!=='credit'; });
+  var cs=round2(cred.reduce(function(s,t){ return s+t.amount; },0));
+  var ds=round2(deb.reduce(function(s,t){ return s+t.amount; },0));
+  var r={
+    creditCount:cred.length, debitCount:deb.length,
+    creditSum:cs, debitSum:ds,
+    statedCreditCount:meta.statedCreditCount, statedDebitCount:meta.statedDebitCount,
+    statedCreditTotal:meta.statedCreditTotal, statedDebitTotal:meta.statedDebitTotal,
+    computedClose: round2(meta.opening_balance + cs - ds),
+    statedClose: meta.closing_balance
+  };
+  r.countOk = (meta.statedCreditCount==null||cred.length===meta.statedCreditCount) &&
+              (meta.statedDebitCount==null||deb.length===meta.statedDebitCount);
+  r.sumOk = (meta.statedCreditTotal==null||cs===meta.statedCreditTotal) &&
+            (meta.statedDebitTotal==null||ds===meta.statedDebitTotal);
+  r.balOk = !meta.closing_balance || r.computedClose===r.statedClose;
+  r.allOk = r.countOk && r.sumOk && r.balOk;
+  return r;
+}
+
+function renderRecon(r){
+  var el=document.getElementById('reconCard');
+  el.className='recon '+(r.allOk?'ok':'bad');
+  document.getElementById('reconTitle').innerHTML = r.allOk
+    ? '✓ Reconciled against the statement'
+    : '⚠ Does not reconcile — check before relying on these numbers';
+  var b='';
+  b+='Transactions: <code>'+r.creditCount+'</code> credits'+(r.statedCreditCount!=null?' (statement says '+r.statedCreditCount+')':'')+
+     ', <code>'+r.debitCount+'</code> debits &amp; checks'+(r.statedDebitCount!=null?' (statement says '+r.statedDebitCount+')':'')+'.<br>';
+  if(r.statedCreditTotal!=null) b+='Deposits total: <code>'+fmt(r.creditSum)+'</code> vs statement <code>'+fmt(r.statedCreditTotal)+'</code>.<br>';
+  if(r.statedDebitTotal!=null) b+='Debits total: <code>'+fmt(r.debitSum)+'</code> vs statement <code>'+fmt(r.statedDebitTotal)+'</code>.<br>';
+  b+='Ending balance: <code>'+fmt(r.computedClose)+'</code> computed vs <code>'+fmt(r.statedClose)+'</code> stated.';
+  document.getElementById('reconBody').innerHTML=b;
+  el.style.display='block';
+}
+
+// ---- Summary ----
+function computeSummary(transactions){
+  var expCats={}; EXP_CATS.forEach(function(c){ expCats[c]=0; });
+  var inc=0, exp=0;
+  (transactions||[]).forEach(function(t){
+    if(t.type==='income') inc+=Math.abs(t.amount);
+    else { expCats[t.category]=(expCats[t.category]||0)+Math.abs(t.amount); exp+=Math.abs(t.amount); }
+  });
+  return { total_income:round2(inc), expenses_by_category:expCats, total_expenses:round2(exp), net_income:round2(inc-exp) };
+}
+
+// ---- Formatting ----
+function fmt(n){ return '$'+Math.abs(Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtS(n){ var v=Number(n)||0; return (v<0?'-':'')+fmt(v); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ---- Render ----
+function showResult(d){
+  document.getElementById('resultTitle').textContent=d.period;
+  if(d._recon) renderRecon(d._recon);
+  renderKpis(d); renderSummaryCols(d); renderTxTable(d);
+  document.getElementById('resultPanel').style.display='block';
+}
+function renderKpis(d){
+  var net=d.summary.net_income;
+  document.getElementById('kpiRow').innerHTML=
+    '<div class="kpi-card inc"><div class="kpi-lbl">Total Revenue</div><div class="kpi-val pos">'+fmt(d.summary.total_income)+'</div></div>'+
+    '<div class="kpi-card exp"><div class="kpi-lbl">Total Expenses</div><div class="kpi-val neu">'+fmt(d.summary.total_expenses)+'</div></div>'+
+    '<div class="kpi-card '+(net>=0?'netp':'netn')+'"><div class="kpi-lbl">Net Income</div><div class="kpi-val '+(net>=0?'pos':'neg')+'">'+fmtS(net)+'</div></div>'+
+    '<div class="kpi-card"><div class="kpi-lbl">Closing Balance</div><div class="kpi-val neu">'+fmt(d.closing_balance)+'</div></div>';
+}
+function renderSummaryCols(d){
+  var incRows={};
+  d.transactions.forEach(function(t){ if(t.type==='income') incRows[t.category]=(incRows[t.category]||0)+Math.abs(t.amount); });
+  var ih='';
+  Object.keys(incRows).forEach(function(c){ ih+='<div class="cat-row"><span class="cat-name">'+esc(c)+'</span><span class="ca i">'+fmt(incRows[c])+'</span></div>'; });
+  ih+='<div class="cat-row total"><span>Total Revenue</span><span class="ca i">'+fmt(d.summary.total_income)+'</span></div>';
+  var ec=d.summary.expenses_by_category;
+  var ek=Object.keys(ec).filter(function(k){ return ec[k]>0; }).sort(function(a,b){ return ec[b]-ec[a]; });
+  var eh='';
+  ek.forEach(function(k){ eh+='<div class="cat-row"><span class="cat-name">'+esc(k)+'</span><span class="ca e">'+fmt(ec[k])+'</span></div>'; });
+  eh+='<div class="cat-row total"><span>Total Expenses</span><span class="ca e">'+fmt(d.summary.total_expenses)+'</span></div>';
+  document.getElementById('summarySection').innerHTML=
+    '<div class="sec-card"><div class="sec-head">Revenue</div>'+ih+'</div>'+
+    '<div class="sec-card"><div class="sec-head dark">Expenses by Category</div>'+eh+'</div>';
+}
+function dateKey(d){
+  var m=String(d||'').match(/(\d{1,2})\s*\/\s*(\d{1,2})/);
+  return m?parseInt(m[1],10)*100+parseInt(m[2],10):999999;
+}
+function renderTxTable(d){
+  var txs=d.transactions.map(function(t,i){ return {t:t,i:i}; });
+  txs.sort(function(a,b){ var x=dateKey(a.t.date)-dateKey(b.t.date); return x!==0?x:a.i-b.i; });
+  var html='';
+  txs.forEach(function(o){
+    var t=o.t;
+    html+='<tr>'+
+      '<td>'+esc(t.date)+'</td>'+
+      '<td class="tdesc">'+esc(t.description)+(t.detail?'<span class="sub">'+esc(t.detail)+'</span>':'')+'</td>'+
+      '<td><span class="tc" data-idx="'+o.i+'" data-period="'+esc(d.period)+'">'+esc(t.category)+'</span></td>'+
+      '<td style="text-align:right" class="'+(t.type==='income'?'ti':'te')+'">'+(t.type==='income'?'':'-')+fmt(t.amount)+'</td>'+
+      '</tr>';
+  });
+  document.getElementById('txBody').innerHTML=html;
+}
+
+// ---- History ----
+function renderHistory(){
+  var filtered=filterRange(loadHistory(),activeRange);
+  document.getElementById('historyCount').textContent=filtered.length+' month'+(filtered.length!==1?'s':'')+' shown';
+  if(!filtered.length){
+    document.getElementById('emptyHist').style.display='block';
+    document.getElementById('histContent').style.display='none';
+    return;
+  }
+  document.getElementById('emptyHist').style.display='none';
+  document.getElementById('histContent').style.display='block';
+  var rev=0,exp=0,net=0,cats={};
+  filtered.forEach(function(h){
+    rev+=h.summary.total_income||0; exp+=h.summary.total_expenses||0; net+=h.summary.net_income||0;
+    Object.keys(h.summary.expenses_by_category).forEach(function(k){ cats[k]=(cats[k]||0)+(h.summary.expenses_by_category[k]||0); });
+  });
+  var n=filtered.length;
+  document.getElementById('aggKpis').innerHTML=
+    '<div class="kpi-card inc"><div class="kpi-lbl">Total Revenue</div><div class="kpi-val pos">'+fmt(rev)+'</div><div class="agg-sub">Avg '+fmt(rev/n)+'/mo</div></div>'+
+    '<div class="kpi-card exp"><div class="kpi-lbl">Total Expenses</div><div class="kpi-val neu">'+fmt(exp)+'</div><div class="agg-sub">Avg '+fmt(exp/n)+'/mo</div></div>'+
+    '<div class="kpi-card '+(net>=0?'netp':'netn')+'"><div class="kpi-lbl">Net Income</div><div class="kpi-val '+(net>=0?'pos':'neg')+'">'+fmtS(net)+'</div><div class="agg-sub">Avg '+fmtS(net/n)+'/mo</div></div>'+
+    '<div class="kpi-card"><div class="kpi-lbl">Months on File</div><div class="kpi-val neu">'+n+'</div><div class="agg-sub">'+esc(filtered[0].period)+' – '+esc(filtered[n-1].period)+'</div></div>';
+  document.getElementById('monthBody').innerHTML=filtered.map(function(h){
+    var lp=h.summary.total_income>0?Math.round(((h.summary.expenses_by_category['Labor / Payroll']||0)/h.summary.total_income)*100):0;
+    var nt=h.summary.net_income;
+    return '<tr><td class="mn">'+esc(h.period)+'</td><td class="pos">'+fmt(h.summary.total_income)+'</td><td>'+fmt(h.summary.total_expenses)+
+      '</td><td class="'+(nt>=0?'pos':'neg')+'">'+fmtS(nt)+'</td><td>'+lp+'%</td><td><button class="del-btn" data-period="'+esc(h.period)+'">✕</button></td></tr>';
+  }).join('');
+  var tlp=rev>0?Math.round(((cats['Labor / Payroll']||0)/rev)*100):0;
+  document.getElementById('monthFoot').innerHTML=
+    '<tr><td>TOTAL</td><td class="pos">'+fmt(rev)+'</td><td>'+fmt(exp)+'</td><td class="'+(net>=0?'pos':'neg')+'">'+fmtS(net)+'</td><td>'+tlp+'%</td><td></td></tr>';
+  var thead='<thead><tr><th>Category</th>'+filtered.map(function(h){ var p=String(h.period).split(' '); return '<th>'+esc((p[0]||'').slice(0,3))+' '+esc(p[1]||'')+'</th>'; }).join('')+'<th>Total</th></tr></thead>';
+  var tbody='<tbody>'+EXP_CATS.map(function(cat){
+    var tot=0;
+    var cells=filtered.map(function(h){ var v=h.summary.expenses_by_category[cat]||0; tot+=v; return '<td>'+(v>0?fmt(v):'—')+'</td>'; }).join('');
+    return tot?('<tr><td>'+esc(cat)+'</td>'+cells+'<td><strong>'+fmt(tot)+'</strong></td></tr>'):'';
+  }).filter(Boolean).join('')+'</tbody>';
+  document.getElementById('catTable').innerHTML=thead+tbody;
+}
+document.getElementById('monthBody').addEventListener('click',function(e){
+  var b=e.target.closest('.del-btn'); if(!b) return;
+  if(!confirm('Remove '+b.dataset.period+' from history?')) return;
+  deleteEntry(b.dataset.period); renderHistory();
+});
+
+// ---- Utils ----
+function showProgress(m,s){
+  document.getElementById('progMsg').textContent=m;
+  document.getElementById('progSub').textContent=s||'';
+  document.getElementById('progressCard').style.display='block';
+}
+function setProgressSub(s){ document.getElementById('progSub').textContent=s; }
+function hideProgress(){ document.getElementById('progressCard').style.display='none'; }
+function showError(m){ document.getElementById('errorMsg').textContent=m; document.getElementById('errorCard').style.display='block'; }
+function hideError(){ document.getElementById('errorCard').style.display='none'; }
+
+initApiKey();
+setTab('upload');
+</script>
+</body>
+</html>
