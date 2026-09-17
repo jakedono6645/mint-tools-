@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MINT Labor % Tracker</title>
+<style>
+  :root {
+    --green: #1F9E75;
+    --green-dark: #0F6E56;
+    --green-light: #E1F5EE;
+    --bg: #F7F7F5;
+    --card: #FFFFFF;
+    --border: #E2E2DE;
+    --text: #2C2C2A;
+    --text-muted: #6B6B66;
+    --danger: #A32D2D;
+    --danger-light: #FBEAEA;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr 1.6fr auto;
+    gap: 12px;
+    align-items: end;
+  }
+  @media (max-width: 800px) {
+    .form-grid { grid-template-columns: 1fr 1fr; }
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    color: var(--text);
+    background: var(--bg);
+  }
+  input:focus { outline: none; border-color: var(--green); background: var(--card); }
+
+  button {
+    padding: 9px 16px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text);
+  }
+  button:hover { background: var(--bg); }
+  button.primary {
+    background: var(--green);
+    color: #fff;
+    border-color: var(--green);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  button.primary:hover { background: var(--green-dark); }
+  button.small {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+  button.danger-text {
+    color: var(--danger);
+    border-color: transparent;
+    background: transparent;
+  }
+  button.danger-text:hover { background: var(--danger-light); }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 800px) {
+    .stats { grid-template-columns: 1fr 1fr; }
+  }
+  .stat {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .stat .label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
+  .stat .value { font-size: 24px; font-weight: 700; }
+  .stat .sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .stat .value.good { color: var(--green-dark); }
+  .stat .value.bad { color: var(--danger); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead th {
+    text-align: left;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody td {
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--bg); }
+  .notes-cell { color: var(--text-muted); font-size: 13px; max-width: 220px; }
+  .pct-badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .pct-good { background: var(--green-light); color: var(--green-dark); }
+  .pct-bad { background: var(--danger-light); color: var(--danger); }
+  .trend { font-size: 12px; margin-left: 6px; }
+  .trend.up { color: var(--danger); }
+  .trend.down { color: var(--green-dark); }
+  .empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 30px 10px;
+    font-size: 14px;
+  }
+  .target-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .target-row input {
+    width: 70px;
+    padding: 5px 8px;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+  <h1>MINT Labor % Tracker</h1>
+  <div class="subtitle">Weekly revenue vs. payroll — track labor cost % over time</div>
+
+  <div class="card">
+    <div class="form-grid">
+      <div>
+        <label for="dateRange">Date Range</label>
+        <input type="text" id="dateRange" placeholder="e.g. Sep 11 - Sep 17">
+      </div>
+      <div>
+        <label for="revenue">Revenue ($)</label>
+        <input type="number" id="revenue" step="0.01" placeholder="0.00">
+      </div>
+      <div>
+        <label for="payroll">Payroll ($)</label>
+        <input type="number" id="payroll" step="0.01" placeholder="0.00">
+      </div>
+      <div>
+        <label for="notes">Notes</label>
+        <input type="text" id="notes" placeholder="optional">
+      </div>
+      <div>
+        <button class="primary" onclick="addWeek()">Add Week</button>
+      </div>
+    </div>
+    <div class="target-row">
+      Target labor %: <input type="number" id="targetPct" value="35" step="1" onchange="render()">%
+      <span style="margin-left: 6px;">(used to flag weeks green/red)</span>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="label">Average Labor %</div>
+      <div class="value" id="statAvg">—</div>
+      <div class="sub" id="statAvgSub"></div>
+    </div>
+    <div class="stat">
+      <div class="label">Trailing 4-Week Avg</div>
+      <div class="value" id="statTrailing">—</div>
+      <div class="sub" id="statTrailingSub"></div>
+    </div>
+    <div class="stat">
+      <div class="label">Last Week</div>
+      <div class="value" id="statLast">—</div>
+      <div class="sub" id="statLastSub"></div>
+    </div>
+    <div class="stat">
+      <div class="label">Weeks Tracked</div>
+      <div class="value" id="statCount">0</div>
+      <div class="sub">total entries</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Date Range</th>
+          <th>Revenue</th>
+          <th>Payroll</th>
+          <th>Labor %</th>
+          <th>Notes</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div id="emptyState" class="empty" style="display:none;">No weeks entered yet. Add your first week above.</div>
+  </div>
+
+<script>
+const STORAGE_KEY = 'mint_labor_v1';
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function fmtMoney(n) {
+  return '$' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function laborPct(revenue, payroll) {
+  if (!revenue) return 0;
+  return (payroll / revenue) * 100;
+}
+
+function addWeek() {
+  const dateRange = document.getElementById('dateRange').value.trim();
+  const revenue = parseFloat(document.getElementById('revenue').value);
+  const payroll = parseFloat(document.getElementById('payroll').value);
+  const notes = document.getElementById('notes').value.trim();
+
+  if (!dateRange || isNaN(revenue) || isNaN(payroll)) {
+    alert('Please fill in date range, revenue, and payroll.');
+    return;
+  }
+
+  const data = loadData();
+  data.push({
+    id: Date.now(),
+    dateRange,
+    revenue,
+    payroll,
+    notes,
+    createdAt: new Date().toISOString()
+  });
+  saveData(data);
+
+  document.getElementById('dateRange').value = '';
+  document.getElementById('revenue').value = '';
+  document.getElementById('payroll').value = '';
+  document.getElementById('notes').value = '';
+
+  render();
+}
+
+function deleteWeek(id) {
+  if (!confirm('Delete this week?')) return;
+  let data = loadData();
+  data = data.filter(w => w.id !== id);
+  saveData(data);
+  render();
+}
+
+function render() {
+  const data = loadData();
+  const target = parseFloat(document.getElementById('targetPct').value) || 35;
+  const tbody = document.getElementById('tableBody');
+  const emptyState = document.getElementById('emptyState');
+
+  tbody.innerHTML = '';
+
+  if (data.length === 0) {
+    emptyState.style.display = 'block';
+  } else {
+    emptyState.style.display = 'none';
+
+    // render newest first
+    const rows = [...data].reverse();
+    rows.forEach((week, idx) => {
+      const pct = laborPct(week.revenue, week.payroll);
+      const pctClass = pct <= target ? 'pct-good' : 'pct-bad';
+
+      // find prior week chronologically for trend
+      const chronoIndex = data.findIndex(w => w.id === week.id);
+      let trendHtml = '';
+      if (chronoIndex > 0) {
+        const prevPct = laborPct(data[chronoIndex - 1].revenue, data[chronoIndex - 1].payroll);
+        const diff = pct - prevPct;
+        if (Math.abs(diff) >= 0.1) {
+          const dir = diff > 0 ? 'up' : 'down';
+          const arrow = diff > 0 ? '▲' : '▼';
+          trendHtml = `<span class="trend ${dir}">${arrow} ${Math.abs(diff).toFixed(1)}pt</span>`;
+        }
+      }
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escapeHtml(week.dateRange)}</td>
+        <td>${fmtMoney(week.revenue)}</td>
+        <td>${fmtMoney(week.payroll)}</td>
+        <td><span class="pct-badge ${pctClass}">${pct.toFixed(1)}%</span>${trendHtml}</td>
+        <td class="notes-cell">${escapeHtml(week.notes || '')}</td>
+        <td><button class="small danger-text" onclick="deleteWeek(${week.id})">Delete</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Stats
+  document.getElementById('statCount').textContent = data.length;
+
+  if (data.length > 0) {
+    const pcts = data.map(w => laborPct(w.revenue, w.payroll));
+    const avg = pcts.reduce((a, b) => a + b, 0) / pcts.length;
+    setStat('statAvg', 'statAvgSub', avg, target, `${data.length} week${data.length !== 1 ? 's' : ''}`);
+
+    const trailing = pcts.slice(-4);
+    const trailingAvg = trailing.reduce((a, b) => a + b, 0) / trailing.length;
+    setStat('statTrailing', 'statTrailingSub', trailingAvg, target, `last ${trailing.length} week${trailing.length !== 1 ? 's' : ''}`);
+
+    const lastPct = pcts[pcts.length - 1];
+    let lastSub = '';
+    if (pcts.length > 1) {
+      const diff = lastPct - pcts[pcts.length - 2];
+      const dir = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
+      const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '—';
+      lastSub = `${arrow} ${Math.abs(diff).toFixed(1)}pt vs prior week`;
+    }
+    setStat('statLast', 'statLastSub', lastPct, target, lastSub);
+  } else {
+    ['statAvg', 'statTrailing', 'statLast'].forEach(id => {
+      document.getElementById(id).textContent = '—';
+      document.getElementById(id).className = 'value';
+    });
+    document.getElementById('statAvgSub').textContent = '';
+    document.getElementById('statTrailingSub').textContent = '';
+    document.getElementById('statLastSub').textContent = '';
+  }
+}
+
+function setStat(valueId, subId, pct, target, subText) {
+  const valEl = document.getElementById(valueId);
+  valEl.textContent = pct.toFixed(1) + '%';
+  valEl.className = 'value ' + (pct <= target ? 'good' : 'bad');
+  document.getElementById(subId).textContent = subText;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+render();
+</script>
+
+</body>
+</html>
