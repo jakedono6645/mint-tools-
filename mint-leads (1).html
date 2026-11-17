@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>MINT Leads Dashboard</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --ring: rgba(11, 11, 11, 0.10);
+    --wash: rgba(11, 11, 11, 0.04);
+    --s1: #2a78d6;          /* Facebook ads (categorical slot 1) */
+    --s2: #eb6834;          /* Other sources (categorical slot 2) */
+    --good: #0ca30c;
+    --good-text: #006300;
+    --warn: #fab219;
+    --crit: #d03b3b;
+    --navy: #0D1B3E;
+    --mint: #3DBFA0;
+    --mint-d: #2ea88c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #f0efec;
+      --ink2: #c3c2b7;
+      --grid: #2c2c2a;
+      --axis: #383835;
+      --ring: rgba(255, 255, 255, 0.10);
+      --wash: rgba(255, 255, 255, 0.06);
+      --s1: #3987e5;
+      --s2: #d95926;
+      --good-text: #0ca30c;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--page); color: var(--ink);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  [hidden] { display: none !important; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  a { color: inherit; }
+
+  /* login / setup */
+  .center { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .login-card { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 28px; }
+  .login-card h1 { font-size: 20px; margin-bottom: 6px; }
+  .login-card p { color: var(--ink2); margin-bottom: 18px; }
+  .login-card label { display: block; font-size: 12px; font-weight: 600; color: var(--ink2); margin-bottom: 6px; }
+
+  /* header */
+  .top { background: var(--navy); color: #fff; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+  .brand { font-weight: 700; letter-spacing: 0.06em; }
+  .brand b { color: var(--mint); }
+  .brand span { font-weight: 500; opacity: 0.7; margin-left: 10px; letter-spacing: 0.1em; text-transform: uppercase; font-size: 12px; }
+  .top-r { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+  .top-r .stamp { opacity: 0.65; }
+  .top .btn { background: transparent; color: #fff; border-color: rgba(255,255,255,0.35); }
+  .top .btn:hover { background: rgba(255,255,255,0.1); }
+
+  main { max-width: 1120px; margin: 0 auto; padding: 24px 20px 80px; }
+  section { margin-bottom: 32px; }
+  h2 { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink2); margin-bottom: 12px; }
+  h2 small { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--muted); margin-left: 8px; }
+
+  .card { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 18px 20px; }
+  .grid { display: grid; gap: 12px; }
+  .g4 { grid-template-columns: repeat(4, 1fr); }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 860px) { .g4 { grid-template-columns: repeat(2, 1fr); } .g3 { grid-template-columns: 1fr; } }
+  @media (max-width: 480px) { .g4 { grid-template-columns: 1fr; } }
+
+  .label { font-size: 12px; color: var(--ink2); margin-bottom: 4px; }
+  .value { font-size: 28px; font-weight: 600; line-height: 1.15; }
+  .sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .hero { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .hero .value { font-size: 56px; font-weight: 600; line-height: 1.05; }
+  .top-row { display: grid; grid-template-columns: 3fr 2fr; gap: 12px; margin-bottom: 12px; }
+  .top-row .hero { margin-bottom: 0; }
+  @media (max-width: 860px) { .top-row { grid-template-columns: 1fr; } }
+  .quota { display: flex; align-items: center; gap: 18px; }
+  .quota .info { min-width: 0; }
+  svg text.ring-text { fill: var(--ink); font-weight: 600; }
+  .delta { font-size: 12px; font-weight: 600; }
+  .delta.up { color: var(--good-text); }
+  .delta.down { color: var(--crit); }
+  .delta.flat { color: var(--muted); }
+
+  .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--ring); background: var(--wash); white-space: nowrap; }
+  .chip i { font-style: normal; }
+  .chip.good i { color: var(--good-text); }
+  .chip.warn i { color: #b57f00; }
+  .chip.crit i { color: var(--crit); }
+  .chip.mint i { color: var(--mint-d); }
+  .chip.mute { color: var(--muted); font-weight: 500; }
+
+  .btn { border: 1px solid var(--ring); background: var(--surface); border-radius: 6px; padding: 6px 12px; font-size: 13px; font-weight: 500; }
+  .btn:hover { background: var(--wash); }
+  .btn.primary { background: var(--mint); border-color: var(--mint); color: #062a22; font-weight: 600; }
+  .btn.primary:hover { background: var(--mint-d); }
+  .btn.sm { padding: 3px 9px; font-size: 12px; }
+  .btn.danger { color: var(--crit); }
+  .btn:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--mint); outline-offset: 1px; }
+
+  input[type=text], input[type=email], input[type=number], select, textarea {
+    background: var(--surface); border: 1px solid var(--ring); border-radius: 6px; padding: 7px 10px; width: 100%;
+  }
+  textarea { min-height: 90px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+
+  /* filter row */
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+  .seg { display: inline-flex; border: 1px solid var(--ring); border-radius: 6px; overflow: hidden; background: var(--surface); }
+  .seg button { border: 0; background: transparent; padding: 6px 12px; font-size: 13px; }
+  .seg button + button { border-left: 1px solid var(--ring); }
+  .seg button[aria-pressed=true] { font-weight: 700; background: var(--wash); }
+  .seg button[aria-pressed=true]::before { content: "\2713\00a0"; }
+  .field-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink2); }
+  .field-inline input { width: 84px; }
+
+  /* chart */
+  .chart-wrap { position: relative; }
+  .chart-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--ink2); align-items: center; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 8px 10px; font-size: 12px; min-width: 150px; box-shadow: 0 4px 14px rgba(0,0,0,0.12); z-index: 5; }
+  .tip .d { color: var(--ink2); margin-bottom: 4px; }
+  .tip .r { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+  .tip .r b { font-size: 13px; }
+  .tip .k { display: inline-block; width: 10px; height: 2px; margin-right: 6px; vertical-align: middle; }
+  svg text { fill: var(--muted); font-size: 11px; font-family: inherit; }
+  .col-hit:hover ~ .x, .col:hover { opacity: 0.85; }
+  .loading { opacity: 0.6; transition: opacity 0.15s; }
+
+  /* tables */
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+  td { padding: 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.detail td { background: var(--wash); font-size: 12px; color: var(--ink2); }
+  .nm { font-weight: 600; }
+  .muted { color: var(--muted); }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .tabs input[type=text] { max-width: 240px; margin-left: auto; }
+  .empty { padding: 24px; text-align: center; color: var(--muted); }
+
+  .notice { padding: 10px 14px; border-radius: 8px; border: 1px solid var(--ring); background: var(--wash); margin-bottom: 16px; font-size: 13px; }
+  .notice.err { border-color: var(--crit); }
+  details { margin-top: 14px; }
+  summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+  .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; align-items: end; }
+  .form-row label { font-size: 12px; font-weight: 600; color: var(--ink2); display: block; margin-bottom: 4px; }
+  dialog { border: 1px solid var(--ring); border-radius: 10px; padding: 22px; background: var(--surface); color: var(--ink); max-width: 420px; width: calc(100% - 32px); margin: auto; }
+  dialog::backdrop { background: rgba(0,0,0,0.4); }
+  dialog h3 { font-size: 16px; margin-bottom: 4px; }
+  dialog .row { margin-top: 12px; }
+  dialog label { display: block; font-size: 12px; font-weight: 600; color: var(--ink2); margin-bottom: 4px; }
+  dialog .foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+  .fine { font-size: 12px; color: var(--muted); margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<div id="setup" class="center" hidden>
+  <div class="login-card">
+    <h1>One setup step left</h1>
+    <p>Open <b>mint-leads.html</b> in a text editor and paste your Supabase Project URL and publishable key at the top of the script (the two lines marked PASTE).</p>
+  </div>
+</div>
+
+<div id="login" class="center" hidden>
+  <form class="login-card" id="login-form">
+    <h1>MINT Leads</h1>
+    <p>Enter your email and we'll send you a one-click login link.</p>
+    <label for="login-email">Email</label>
+    <input id="login-email" type="email" required autocomplete="email">
+    <button class="btn primary" style="width:100%;margin-top:14px;padding:10px" type="submit">Email me a login link</button>
+    <div id="login-msg" class="fine" role="status"></div>
+  </form>
+</div>
+
+<div id="app" hidden>
+  <header class="top">
+    <div class="brand"><b>MINT</b><span>Leads</span></div>
+    <div class="top-r">
+      <span class="stamp" id="stamp"></span>
+      <button class="btn sm" id="refresh" type="button">Refresh</button>
+      <button class="btn sm" id="signout" type="button">Sign out</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <div id="notice"></div>
+
+    <section id="sec-now"></section>
+
+    <div class="filters" id="filters"></div>
+
+    <section id="sec-leads"></section>
+    <section id="sec-closing"></section>
+    <section id="sec-list"></section>
+    <section id="sec-clients"></section>
+  </main>
+</div>
+
+<dialog id="dlg"></dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function () {
+'use strict';
+
+// ─────────────────────────────────────────────────────────────
+// SETUP: paste your two Supabase values here (Project URL and publishable key).
+// The publishable key is safe in a web page: your database rules only let YOU read leads.
+// NEVER paste the secret key here.
+// ─────────────────────────────────────────────────────────────
+var SUPABASE_URL = 'https://auqgahjioeuzcmllywld.supabase.co';
+var SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_EjyjPctzQ1O3OgT1rZL-Xw_Ly88pIGy';
+
+var PACE_DEFAULT = 2;       // leads per day you consider "good"
+var STALE_DAYS = 7;         // open leads older than this get a follow-up flag
+var EARLY_N = 20;           // below this many leads, percentages are flagged "early"
+var REFRESH_MS = 60000;
+
+// ── tiny helpers ────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+function h(tag, attrs) {
+  var el = document.createElement(tag);
+  if (attrs) Object.keys(attrs).forEach(function (k) {
+    var v = attrs[k];
+    if (v === null || v === undefined || v === false) return;
+    if (k === 'class') el.className = v;
+    else if (k === 'text') el.textContent = v;
+    else if (k.slice(0, 2) === 'on') el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : v);
+  });
+  for (var i = 2; i < arguments.length; i++) appendKid(el, arguments[i]);
+  return el;
+}
+function appendKid(el, kid) {
+  if (kid === null || kid === undefined || kid === false) return;
+  if (Array.isArray(kid)) { kid.forEach(function (k) { appendKid(el, k); }); return; }
+  el.appendChild(kid && kid.nodeType ? kid : document.createTextNode(String(kid)));
+}
+var SVGNS = 'http://www.w3.org/2000/svg';
+function s(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  if (attrs) Object.keys(attrs).forEach(function (k) {
+    if (attrs[k] === null || attrs[k] === undefined) return;
+    if (k === 'text') el.textContent = attrs[k]; else el.setAttribute(k, attrs[k]);
+  });
+  for (var i = 2; i < arguments.length; i++) appendKid(el, arguments[i]);
+  return el;
+}
+var usd0 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+var usd2 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function money(n) { return n === null || n === undefined || isNaN(n) ? '—' : usd0.format(n); }
+function money2(n) { return n === null || n === undefined || isNaN(n) ? '—' : usd2.format(n); }
+function num(v) { var n = parseFloat(v); return isNaN(n) ? null : n; }
+function pad(n) { return n < 10 ? '0' + n : '' + n; }
+function dayKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function startOfDay(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+function fmtShort(d) { return (d.getMonth() + 1) + '/' + d.getDate(); }
+function fmtLong(d) { return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); }
+function ageDays(iso) { return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000); }
+function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+
+var FB_RE = /facebook|instagram|\bfb\b/i;
+function isFb(src) { return FB_RE.test(src || ''); }
+function monthlyFrom(freq, price) {
+  if (price === null || price === undefined) return null;
+  if (freq === 'weekly') return price * 52 / 12;
+  if (freq === 'biweekly') return price * 26 / 12;
+  if (freq === 'monthly') return price;
+  return null;
+}
+var PLAN_LABEL = { weekly: 'Weekly', biweekly: 'Every 2 weeks', monthly: 'Monthly', deep: 'Deep clean', one_time: 'One-time' };
+function planLabel(f) { return f ? (PLAN_LABEL[f] || f) : '—'; }
+
+// ── state ───────────────────────────────────────────────────
+var state = {
+  leads: [], clients: [], clientsMissing: false,
+  range: parseInt(store('mint_range'), 10) || 14,
+  pace: num(store('mint_pace')) || PACE_DEFAULT,
+  adSpend: num(store('mint_adspend')) || 0,
+  quota: num(store('mint_quota')) || 3000, settingsOk: false,
+  tab: 'open', search: '', expanded: {}, tableView: false,
+  loadedAt: null, loading: false
+};
+var sb = null, started = false, timer = null;
+
+// ── data ────────────────────────────────────────────────────
+async function fetchAll(table) {
+  var out = [], size = 1000;
+  for (var from = 0; ; from += size) {
+    var res = await sb.from(table).select('*').order('created_at', { ascending: false }).range(from, from + size - 1);
+    if (res.error) throw res.error;
+    out = out.concat(res.data);
+    if (res.data.length < size) break;
+  }
+  return out;
+}
+async function loadSettings() {
+  try {
+    var r = await sb.from('settings').select('*');
+    if (r.error) throw r.error;
+    state.settingsOk = true;
+    r.data.forEach(function (row) {
+      var v = num(row.value);
+      if (v === null) return;
+      if (row.key === 'quota_mrr' && v > 0) state.quota = v;
+      if (row.key === 'pace' && v >= 0) state.pace = v;
+      if (row.key === 'ad_spend' && v >= 0) state.adSpend = v;
+    });
+  } catch (e) { state.settingsOk = false; }
+}
+// Settings live in the database (so every device agrees) and fall back to this browser if that is not set up.
+function saveSetting(key, val) {
+  var local = { quota_mrr: 'mint_quota', pace: 'mint_pace', ad_spend: 'mint_adspend' }[key];
+  if (local) store(local, String(val));
+  if (state.settingsOk) {
+    sb.from('settings').upsert({ key: key, value: String(val), updated_at: new Date().toISOString() }, { onConflict: 'key' })
+      .then(function (r) { if (r && r.error) notice('Could not save that setting: ' + r.error.message, true); });
+  }
+}
+async function load() {
+  if (state.loading) return;
+  state.loading = true;
+  $('main').classList.add('loading');
+  try {
+    state.leads = await fetchAll('leads');
+    notice('');
+  } catch (e) {
+    notice('Could not load leads: ' + (e.message || e), true);
+  }
+  try {
+    state.clients = await fetchAll('clients');
+    state.clientsMissing = false;
+  } catch (e) {
+    state.clients = []; state.clientsMissing = true;
+  }
+  await loadSettings();
+  state.loadedAt = new Date();
+  state.loading = false;
+  $('main').classList.remove('loading');
+  renderAll();
+}
+function notice(msg, isErr) {
+  var box = $('notice');
+  box.replaceChildren();
+  if (!msg) return;
+  box.appendChild(h('div', { class: 'notice' + (isErr ? ' err' : ''), role: 'status', text: msg }));
+}
+async function act(fn, okMsg) {
+  try { await fn(); if (okMsg) notice(okMsg); await load(); }
+  catch (e) { notice('Something went wrong: ' + (e.message || e), true); }
+}
+
+// ── derived numbers ─────────────────────────────────────────
+function isOpen(l) { return l.status === 'new' || l.status === 'approved'; }
+function reachedApproval(l) { return !!l.approved_at || l.status === 'approved' || l.status === 'booked'; }
+function groupStats(list) {
+  var g = { leads: list.length, approved: 0, won: 0, lost: 0, open: 0 };
+  list.forEach(function (l) {
+    if (reachedApproval(l)) g.approved++;
+    if (l.status === 'booked') g.won++;
+    else if (l.status === 'lost') g.lost++;
+    else g.open++;
+  });
+  return g;
+}
+function leadsBetween(from, to) {
+  return state.leads.filter(function (l) { var t = new Date(l.created_at); return t >= from && t < to; });
+}
+function activeRecurring() {
+  return state.clients.filter(function (c) { return c.status === 'active' && c.client_type === 'recurring'; });
+}
+function mrr() {
+  return activeRecurring().reduce(function (a, c) { return a + (num(c.monthly_value) || 0); }, 0);
+}
+
+// ── render: right now ───────────────────────────────────────
+function tile(label, value, sub, extra) {
+  return h('div', { class: 'card' },
+    h('div', { class: 'label', text: label }),
+    h('div', { class: 'value', text: value }),
+    sub ? h('div', { class: 'sub', text: sub }) : null, extra || null);
+}
+function quarterInfo() {
+  var now = new Date(), q = Math.floor(now.getMonth() / 3);
+  var start = new Date(now.getFullYear(), q * 3, 1), end = new Date(now.getFullYear(), q * 3 + 3, 1);
+  return { q: q + 1, year: now.getFullYear(), start: start, end: end, frac: (now - start) / (end - start), daysLeft: Math.max(0, Math.ceil((end - now) / 86400000)) };
+}
+// New recurring MRR = active recurring clients won since a date. Clients flagged "existing" (imported) never count as new.
+function newMrrSince(from) {
+  return activeRecurring().filter(function (c) { return !c.is_existing && new Date(c.start_date + 'T00:00:00') >= from; })
+    .reduce(function (a, c) { return a + (num(c.monthly_value) || 0); }, 0);
+}
+function quotaCard() {
+  var qi = quarterInfo(), got = newMrrSince(qi.start), quota = state.quota, pct = quota > 0 ? got / quota : 0;
+  var R = 46, C = 2 * Math.PI * R;
+  var svg = s('svg', { viewBox: '0 0 124 124', width: '124', height: '124', role: 'img', 'aria-label': 'New MRR goal progress: ' + Math.round(pct * 100) + ' percent of ' + money(quota) });
+  svg.appendChild(s('circle', { cx: 62, cy: 62, r: R, fill: 'none', stroke: 'var(--s1)', 'stroke-opacity': '0.18', 'stroke-width': 12 }));
+  if (got > 0) svg.appendChild(s('circle', { cx: 62, cy: 62, r: R, fill: 'none', stroke: 'var(--s1)', 'stroke-width': 12, 'stroke-linecap': 'round',
+    'stroke-dasharray': (C * Math.min(pct, 1)) + ' ' + C, transform: 'rotate(-90 62 62)' }));
+  svg.appendChild(s('text', { x: 62, y: 70, 'text-anchor': 'middle', class: 'ring-text', 'font-size': '24', text: Math.round(pct * 100) + '%' }));
+
+  var cls, icon, word;
+  if (pct >= 1) { cls = 'good'; icon = '✓'; word = 'Goal reached'; }
+  else {
+    var expected = quota * qi.frac, ratio = expected > 0 ? got / expected : 1;
+    if (ratio >= 0.9) { cls = 'good'; icon = '✓'; word = 'On track'; }
+    else if (ratio >= 0.6) { cls = 'warn'; icon = '!'; word = 'Behind pace'; }
+    else { cls = 'crit'; icon = '✕'; word = 'Well behind'; }
+  }
+  var info = h('div', { class: 'info' },
+    h('div', { class: 'label', text: 'New recurring MRR goal · Q' + qi.q + ' ' + qi.year }),
+    h('div', { class: 'value', style: 'font-size:24px', text: money(got) }),
+    h('div', { class: 'sub', text: 'of ' + money(quota) + ' goal' + (pct >= 1 ? '' : ' · ' + money(quota - got) + ' to go') }),
+    h('div', { class: 'sub' }, h('span', { class: 'chip ' + cls }, h('i', { text: icon, 'aria-hidden': 'true' }), word), ' ' + qi.daysLeft + ' days left'),
+    (qi.frac > 0.1 && pct < 1 && got > 0) ? h('div', { class: 'sub', text: 'On pace for ' + money(got / qi.frac) + ' by quarter end' }) : null,
+    h('div', { style: 'margin-top:8px' }, h('button', { class: 'btn sm', type: 'button', text: 'Edit goal', onclick: function () {
+      var v = window.prompt('New recurring MRR goal per quarter ($):', String(state.quota));
+      if (v === null) return;
+      var n = num(v.replace(/[$,\s]/g, ''));
+      if (n === null || n <= 0) { notice('That was not a valid goal.', true); return; }
+      state.quota = n; saveSetting('quota_mrr', n); renderNow();
+    } })));
+  return h('div', { class: 'card quota' }, svg, info);
+}
+function renderNow() {
+  var box = $('sec-now'); box.replaceChildren();
+  var now = new Date(), monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  var rec = activeRecurring();
+  var addedThisMonth = newMrrSince(monthStart);
+
+  var open = state.leads.filter(isOpen), pipeRec = 0, pipeRecN = 0, pipeOne = 0, pipeOneN = 0, unpriced = 0;
+  open.forEach(function (l) {
+    var price = num(l.price), m = monthlyFrom(l.frequency, price);
+    if (m !== null) { pipeRec += m; pipeRecN++; }
+    else if (price !== null) { pipeOne += price; pipeOneN++; }
+    else unpriced++;
+  });
+  var waiting = open.filter(function (l) { return l.status === 'approved'; });
+  var waitVal = waiting.reduce(function (a, l) { var p = num(l.price); var m = monthlyFrom(l.frequency, p); return a + (m !== null ? m : (p || 0)); }, 0);
+
+  var heroRight = h('div', null);
+  if (state.clientsMissing) heroRight.appendChild(h('div', { class: 'sub', text: 'Client tracking not set up yet. Run migration_2.sql in Supabase.' }));
+  else {
+    heroRight.appendChild(h('div', { class: 'delta ' + (addedThisMonth > 0 ? 'up' : 'flat'),
+      text: (addedThisMonth > 0 ? '▲ +' + money(addedThisMonth) : '— $0') + ' new this month' }));
+    heroRight.appendChild(h('div', { class: 'sub', text: rec.length + ' active recurring client' + (rec.length === 1 ? '' : 's') }));
+  }
+  box.appendChild(h('h2', { text: 'Right now' }));
+  box.appendChild(h('div', { class: 'top-row' },
+    h('div', { class: 'card hero' },
+      h('div', null, h('div', { class: 'label', text: 'Monthly recurring revenue' }),
+        h('div', { class: 'value', text: state.clientsMissing ? '—' : money(mrr()) })),
+      heroRight),
+    state.clientsMissing ? h('div', { class: 'card' }, h('div', { class: 'label', text: 'New MRR goal' }), h('div', { class: 'sub', text: 'Available once client tracking is set up.' })) : quotaCard()));
+  box.appendChild(h('div', { class: 'grid g3' },
+    tile('Open pipeline · recurring', money(pipeRec) + '/mo', pipeRecN + ' open lead' + (pipeRecN === 1 ? '' : 's') + ' with a recurring quote'),
+    tile('Open pipeline · one-time', money(pipeOne), pipeOneN + ' open lead' + (pipeOneN === 1 ? '' : 's') + (unpriced ? ' · ' + unpriced + ' without a price' : '')),
+    tile('Approved, waiting to book', String(waiting.length), waiting.length ? money(waitVal) + ' in quoted value' : 'Nobody waiting')));
+}
+
+// ── render: filters ─────────────────────────────────────────
+function renderFilters() {
+  var box = $('filters'); box.replaceChildren();
+  var seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Date range' });
+  [7, 14, 30].forEach(function (n) {
+    seg.appendChild(h('button', { type: 'button', 'aria-pressed': String(state.range === n), text: 'Last ' + n + ' days',
+      onclick: function () { state.range = n; store('mint_range', String(n)); renderAll(); } }));
+  });
+  var pace = h('input', { type: 'number', min: '0', step: '0.5', value: String(state.pace), 'aria-label': 'Target leads per day' });
+  pace.addEventListener('change', function () { var v = num(pace.value); if (v !== null && v >= 0) { state.pace = v; saveSetting('pace', v); renderAll(); } });
+  box.appendChild(seg);
+  box.appendChild(h('label', { class: 'field-inline' }, 'Good pace = ', pace, ' leads/day'));
+}
+
+// ── render: lead stats + chart ──────────────────────────────
+function rangeDays(n) {
+  var today = startOfDay(new Date()), out = [];
+  for (var i = n - 1; i >= 0; i--) { var d = addDays(today, -i); out.push({ date: d, key: dayKey(d) }); }
+  return out;
+}
+function renderLeads() {
+  var box = $('sec-leads'); box.replaceChildren();
+  var n = state.range, days = rangeDays(n);
+  var from = days[0].date, to = addDays(days[n - 1].date, 1), prevFrom = addDays(from, -n);
+  var cur = leadsBetween(from, to), prev = leadsBetween(prevFrom, from);
+  var todayN = leadsBetween(days[n - 1].date, to).length;
+  var avg = cur.length / n;
+
+  var diff = cur.length - prev.length;
+  var delta = h('div', { class: 'delta ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat'),
+    text: (diff > 0 ? '▲ +' + diff : diff < 0 ? '▼ ' + diff : '— 0') + ' vs previous ' + n + ' days' });
+
+  var ratio = state.pace > 0 ? avg / state.pace : 1, cls, icon, word;
+  if (ratio >= 1) { cls = 'good'; icon = '✓'; word = 'Good pace'; }
+  else if (ratio >= 0.5) { cls = 'warn'; icon = '!'; word = 'Slow'; }
+  else { cls = 'crit'; icon = '✕'; word = 'Very slow'; }
+  var paceChip = h('span', { class: 'chip ' + cls }, h('i', { text: icon, 'aria-hidden': 'true' }), word);
+
+  var repeaters = cur.filter(function (l) { return (l.submissions || 1) > 1; }).length;
+
+  box.appendChild(h('h2', null, 'Leads', h('small', { text: 'last ' + n + ' days' })));
+  box.appendChild(h('div', { class: 'grid g4' },
+    tile('Leads today', String(todayN)),
+    tile('Leads, last ' + n + ' days', String(cur.length), null, delta),
+    h('div', { class: 'card' }, h('div', { class: 'label', text: 'Pace' }),
+      h('div', { class: 'value', text: avg.toFixed(1) + '/day' }),
+      h('div', { class: 'sub' }, paceChip, ' target ' + state.pace + '/day')),
+    tile('Repeat submitters', String(repeaters), 'Submitted the form more than once')));
+
+  var wrap = h('div', { class: 'card chart-wrap', style: 'margin-top:12px' });
+  wrap.appendChild(h('div', { class: 'chart-head' },
+    h('div', { class: 'legend' },
+      h('span', null, h('i', { style: 'background:var(--s1)' }), 'Facebook ads'),
+      h('span', null, h('i', { style: 'background:var(--s2)' }), 'Other sources')),
+    h('button', { class: 'btn sm', type: 'button', 'aria-pressed': String(state.tableView), text: state.tableView ? 'Show chart' : 'Show as table',
+      onclick: function () { state.tableView = !state.tableView; renderLeads(); } })));
+
+  var counts = {};
+  days.forEach(function (d) { counts[d.key] = { fb: 0, other: 0 }; });
+  cur.forEach(function (l) { var c = counts[dayKey(new Date(l.created_at))]; if (c) { if (isFb(l.source)) c.fb++; else c.other++; } });
+
+  if (state.tableView) wrap.appendChild(chartTable(days, counts));
+  else wrap.appendChild(chartSvg(days, counts, wrap));
+  box.appendChild(wrap);
+}
+function chartTable(days, counts) {
+  var tb = h('tbody');
+  days.slice().reverse().forEach(function (d) {
+    var c = counts[d.key];
+    tb.appendChild(h('tr', null, h('td', { text: fmtLong(d.date) }), h('td', { class: 'num', text: String(c.fb) }),
+      h('td', { class: 'num', text: String(c.other) }), h('td', { class: 'num', text: String(c.fb + c.other) })));
+  });
+  return h('div', { class: 'tbl-wrap' }, h('table', null,
+    h('thead', null, h('tr', null, h('th', { text: 'Day' }), h('th', { class: 'num', text: 'Facebook ads' }), h('th', { class: 'num', text: 'Other' }), h('th', { class: 'num', text: 'Total' }))), tb));
+}
+function topRounded(x, y, w, hgt, r) {
+  r = Math.max(0, Math.min(r, w / 2, hgt));
+  return 'M' + x + ',' + (y + hgt) + ' V' + (y + r) + ' Q' + x + ',' + y + ' ' + (x + r) + ',' + y + ' H' + (x + w - r) +
+    ' Q' + (x + w) + ',' + y + ' ' + (x + w) + ',' + (y + r) + ' V' + (y + hgt) + ' Z';
+}
+function squareRect(x, y, w, hgt) { return 'M' + x + ',' + y + ' h' + w + ' v' + hgt + ' h' + (-w) + ' Z'; }
+function chartSvg(days, counts, wrap) {
+  var W = 720, H = 250, m = { l: 34, r: 8, t: 12, b: 28 }, pw = W - m.l - m.r, ph = H - m.t - m.b;
+  var n = days.length, band = pw / n, bw = Math.min(24, band * 0.62);
+  var max = 1; days.forEach(function (d) { var c = counts[d.key]; max = Math.max(max, c.fb + c.other); });
+  var step = max <= 5 ? 1 : max <= 10 ? 2 : max <= 25 ? 5 : 10, top = Math.ceil(max / step) * step;
+  var y = function (v) { return m.t + ph - (v / top) * ph; };
+  var svg = s('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', role: 'img', 'aria-label': 'Leads per day, Facebook ads and other sources. A table view is available.' });
+  for (var t = 0; t <= top; t += step) {
+    svg.appendChild(s('line', { x1: m.l, x2: W - m.r, y1: y(t), y2: y(t), stroke: t === 0 ? 'var(--axis)' : 'var(--grid)', 'stroke-width': 1 }));
+    svg.appendChild(s('text', { x: m.l - 6, y: y(t) + 4, 'text-anchor': 'end', text: String(t) }));
+  }
+  var lblStep = n <= 14 ? 1 : n <= 30 ? 5 : 10;
+  var tip = h('div', { class: 'tip', hidden: true });
+  wrap.appendChild(tip);
+  function showTip(d, c, cx) {
+    tip.replaceChildren(h('div', { class: 'd', text: fmtLong(d.date) }),
+      h('div', { class: 'r' }, h('span', null, h('span', { class: 'k', style: 'background:var(--s1)' }), 'Facebook ads'), h('b', { text: String(c.fb) })),
+      h('div', { class: 'r' }, h('span', null, h('span', { class: 'k', style: 'background:var(--s2)' }), 'Other sources'), h('b', { text: String(c.other) })),
+      h('div', { class: 'r', style: 'border-top:1px solid var(--grid);margin-top:4px;padding-top:4px' }, h('span', { text: 'Total' }), h('b', { text: String(c.fb + c.other) })));
+    tip.hidden = false;
+    var box = svg.getBoundingClientRect(), wb = wrap.getBoundingClientRect();
+    var px = (cx / W) * box.width + (box.left - wb.left);
+    var left = Math.min(Math.max(8, px + 12), Math.max(8, wb.width - tip.offsetWidth - 8));
+    tip.style.left = left + 'px'; tip.style.top = '44px';
+  }
+  days.forEach(function (d, i) {
+    var c = counts[d.key], gx = m.l + i * band, x = gx + (band - bw) / 2, cx = gx + band / 2;
+    var g = s('g', { class: 'col' });
+    var total = c.fb + c.other, hFb = (c.fb / top) * ph, hOt = (c.other / top) * ph, base = m.t + ph;
+    if (c.fb > 0) g.appendChild(s('path', { d: c.other > 0 ? squareRect(x, base - hFb, bw, hFb) : topRounded(x, base - hFb, bw, hFb, 4), fill: 'var(--s1)' }));
+    if (c.other > 0) {
+      var gap = c.fb > 0 ? 2 : 0, oh = Math.max(1, hOt - gap), oy = base - hFb - gap - oh;
+      g.appendChild(s('path', { d: topRounded(x, oy, bw, oh, 4), fill: 'var(--s2)' }));
+    }
+    svg.appendChild(g);
+    if (i % lblStep === 0) svg.appendChild(s('text', { x: cx, y: H - 8, 'text-anchor': 'middle', text: fmtShort(d.date) }));
+    var hit = s('rect', { x: gx, y: m.t, width: band, height: ph + 4, fill: 'transparent', tabindex: '0',
+      'aria-label': fmtLong(d.date) + ': ' + total + ' lead' + (total === 1 ? '' : 's') + ', ' + c.fb + ' from Facebook ads, ' + c.other + ' from other sources' });
+    hit.addEventListener('pointermove', function () { showTip(d, c, cx); g.setAttribute('opacity', '0.85'); });
+    hit.addEventListener('focus', function () { showTip(d, c, cx); });
+    hit.addEventListener('pointerleave', function () { tip.hidden = true; g.removeAttribute('opacity'); });
+    hit.addEventListener('blur', function () { tip.hidden = true; });
+    svg.appendChild(hit);
+  });
+  return svg;
+}
+
+// ── render: closing ─────────────────────────────────────────
+function renderClosing() {
+  var box = $('sec-closing'); box.replaceChildren();
+  var all = state.leads;
+  var rows = [
+    ['All leads', all],
+    ['Facebook ads', all.filter(function (l) { return isFb(l.source); })],
+    ['Other sources', all.filter(function (l) { return !isFb(l.source); })],
+    ['Residential', all.filter(function (l) { return l.type !== 'commercial'; })],
+    ['Commercial', all.filter(function (l) { return l.type === 'commercial'; })]
+  ];
+  var tb = h('tbody');
+  rows.forEach(function (r, i) {
+    var g = groupStats(r[1]);
+    var rate = g.leads ? Math.round((g.won / g.leads) * 1000) / 10 : null;
+    var cell = h('td', { class: 'num' });
+    if (rate === null) cell.appendChild(document.createTextNode('—'));
+    else {
+      cell.appendChild(h('b', { text: rate + '%' }));
+      cell.appendChild(h('span', { class: 'muted', text: '  ' + g.won + ' of ' + g.leads }));
+      if (g.leads < EARLY_N) cell.appendChild(h('div', null, h('span', { class: 'chip mute', text: 'early: under ' + EARLY_N + ' leads' })));
+    }
+    tb.appendChild(h('tr', i === 3 ? { style: 'border-top:2px solid var(--grid)' } : null,
+      h('td', { class: 'nm', text: r[0] }), h('td', { class: 'num', text: String(g.leads) }), h('td', { class: 'num', text: String(g.approved) }),
+      h('td', { class: 'num', text: String(g.won) }), h('td', { class: 'num', text: String(g.lost) }), h('td', { class: 'num', text: String(g.open) }), cell));
+  });
+
+  var spend = h('input', { type: 'number', min: '0', step: '0.01', value: state.adSpend ? String(state.adSpend) : '', placeholder: '0.00', 'aria-label': 'Ad spend to date' });
+  spend.addEventListener('change', function () { state.adSpend = num(spend.value) || 0; saveSetting('ad_spend', state.adSpend); renderClosing(); });
+  var fb = groupStats(rows[1][1]);
+  var costLine = state.adSpend > 0
+    ? 'Facebook: ' + (fb.leads ? money2(state.adSpend / fb.leads) + ' per lead' : 'no leads yet') + ' · ' + (fb.won ? money2(state.adSpend / fb.won) + ' per won job' : 'no won jobs yet')
+    : 'Enter your ad spend to see cost per lead and cost per won job.';
+
+  box.appendChild(h('h2', null, 'Closing', h('small', { text: 'all time, so deals that close later still count' })));
+  box.appendChild(h('div', { class: 'card' },
+    h('div', { class: 'tbl-wrap' }, h('table', null,
+      h('thead', null, h('tr', null, h('th', { text: 'Group' }), h('th', { class: 'num', text: 'Leads' }), h('th', { class: 'num', text: 'Approved' }),
+        h('th', { class: 'num', text: 'Won' }), h('th', { class: 'num', text: 'Lost' }), h('th', { class: 'num', text: 'Open' }), h('th', { class: 'num', text: 'Close rate' }))), tb)),
+    h('div', { class: 'filters', style: 'margin:14px 0 0' },
+      h('label', { class: 'field-inline' }, 'Ad spend to date $', spend), h('span', { class: 'sub', style: 'margin:0', text: costLine })),
+    h('div', { class: 'fine', text: 'Close rate = won ÷ all leads in the group. Small groups swing a lot, so wait for about ' + EARLY_N + ' leads before reacting to a difference.' })));
+}
+
+// ── render: lead list ───────────────────────────────────────
+function statusChip(l) {
+  if (l.status === 'booked') return h('span', { class: 'chip good' }, h('i', { text: '✓', 'aria-hidden': 'true' }), 'Won');
+  if (l.status === 'lost') return h('span', { class: 'chip mute' }, h('i', { text: '✕', 'aria-hidden': 'true' }), 'Lost');
+  if (l.status === 'approved') return h('span', { class: 'chip mint' }, h('i', { text: '●', 'aria-hidden': 'true' }), 'Approved');
+  return h('span', { class: 'chip' }, h('i', { text: '○', 'aria-hidden': 'true' }), 'New');
+}
+function renderList() {
+  var box = $('sec-list'); box.replaceChildren();
+  var counts = { open: 0, won: 0, lost: 0, all: state.leads.length };
+  state.leads.forEach(function (l) { if (isOpen(l)) counts.open++; else if (l.status === 'booked') counts.won++; else counts.lost++; });
+  var tabs = h('div', { class: 'tabs' });
+  [['open', 'Open'], ['won', 'Won'], ['lost', 'Lost'], ['all', 'All']].forEach(function (t) {
+    tabs.appendChild(h('button', { class: 'btn sm', type: 'button', 'aria-pressed': String(state.tab === t[0]),
+      style: state.tab === t[0] ? 'font-weight:700;background:var(--wash)' : null,
+      text: t[1] + ' (' + counts[t[0]] + ')', onclick: function () { state.tab = t[0]; renderList(); } }));
+  });
+  var search = h('input', { type: 'text', placeholder: 'Search name, email, phone, source', value: state.search, 'aria-label': 'Search leads' });
+  search.addEventListener('input', function () { state.search = search.value; renderRows(); });
+  tabs.appendChild(search);
+
+  var holder = h('div', { class: 'tbl-wrap' });
+  box.appendChild(h('h2', null, 'Lead list'));
+  box.appendChild(h('div', { class: 'card' }, tabs, holder));
+
+  function renderRows() {
+    holder.replaceChildren();
+    var q = state.search.trim().toLowerCase();
+    var list = state.leads.filter(function (l) {
+      if (state.tab === 'open' && !isOpen(l)) return false;
+      if (state.tab === 'won' && l.status !== 'booked') return false;
+      if (state.tab === 'lost' && l.status !== 'lost') return false;
+      if (!q) return true;
+      return [l.name, l.email, l.phone, l.source].join(' ').toLowerCase().indexOf(q) !== -1;
+    });
+    if (!list.length) { holder.appendChild(h('div', { class: 'empty', text: 'No leads here yet.' })); return; }
+    var tb = h('tbody');
+    list.slice(0, 200).forEach(function (l) {
+      var created = new Date(l.created_at), open = isOpen(l), stale = open && ageDays(l.created_at) >= STALE_DAYS;
+      var price = num(l.price);
+      var planCell = h('td', null, planLabel(l.frequency), h('div', { class: 'muted', text: price !== null ? money(price) + (['weekly', 'biweekly', 'monthly'].indexOf(l.frequency) !== -1 ? ' per visit' : '') : '' }));
+      var actions = h('div', { class: 'actions' });
+      if (open) {
+        actions.appendChild(h('button', { class: 'btn sm primary', type: 'button', text: 'Won', onclick: function () { openWon(l); } }));
+        actions.appendChild(h('button', { class: 'btn sm', type: 'button', text: 'Lost', onclick: function () { markLost(l); } }));
+      } else {
+        actions.appendChild(h('button', { class: 'btn sm', type: 'button', text: 'Reopen', onclick: function () { reopen(l); } }));
+      }
+      actions.appendChild(h('button', { class: 'btn sm danger', type: 'button', text: 'Delete', onclick: function () { deleteLead(l); } }));
+      var isExp = !!state.expanded[l.id];
+      tb.appendChild(h('tr', null,
+        h('td', null, fmtShort(created), h('div', { class: 'muted', text: ageDays(l.created_at) + 'd ago' })),
+        h('td', null, h('button', { class: 'btn sm', type: 'button', 'aria-expanded': String(isExp), text: isExp ? '▾' : '▸', style: 'margin-right:8px',
+          onclick: function () { state.expanded[l.id] = !isExp; renderRows(); } }), h('span', { class: 'nm', text: l.name || '(no name)' }),
+          (l.submissions || 1) > 1 ? h('span', { class: 'chip mute', style: 'margin-left:8px', text: l.submissions + ' submissions' }) : null,
+          stale ? h('div', null, h('span', { class: 'chip warn' }, h('i', { text: '!', 'aria-hidden': 'true' }), 'Follow up: ' + ageDays(l.created_at) + ' days open')) : null),
+        h('td', { text: l.type === 'commercial' ? 'Commercial' : 'Residential' }),
+        h('td', { text: l.source || 'unknown' }),
+        planCell, h('td', null, statusChip(l)), h('td', null, actions)));
+      if (isExp) {
+        var d = [];
+        if (l.email) d.push(h('div', null, 'Email: ', h('a', { href: 'mailto:' + encodeURIComponent(l.email), text: l.email })));
+        if (l.phone) d.push(h('div', null, 'Phone: ', h('a', { href: 'tel:' + String(l.phone).replace(/[^\d+]/g, ''), text: l.phone })));
+        if (l.business_name) d.push(h('div', { text: 'Business: ' + l.business_name }));
+        if (l.sqft) d.push(h('div', { text: 'Home size: about ' + l.sqft + ' sq ft' + (l.pets === true ? ' · pets' : l.pets === false ? ' · no pets' : '') }));
+        if (num(l.initial_price) !== null) d.push(h('div', { text: 'First clean quoted: ' + money(num(l.initial_price)) }));
+        d.push(h('div', { text: 'Submitted ' + created.toLocaleString('en-US') }));
+        tb.appendChild(h('tr', { class: 'detail' }, h('td', { colspan: '7' }, d)));
+      }
+    });
+    holder.appendChild(h('table', null, h('thead', null, h('tr', null,
+      h('th', { text: 'Date' }), h('th', { text: 'Lead' }), h('th', { text: 'Type' }), h('th', { text: 'Source' }),
+      h('th', { text: 'Quote' }), h('th', { text: 'Status' }), h('th', { text: '' }))), tb));
+    if (list.length > 200) holder.appendChild(h('div', { class: 'fine', text: 'Showing the newest 200 of ' + list.length + '. Use search to find older leads.' }));
+  }
+  renderRows();
+}
+
+// ── lead actions ────────────────────────────────────────────
+async function markLost(l) {
+  await act(async function () {
+    var r = await sb.from('leads').update({ status: 'lost', lost_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', l.id);
+    if (r.error) throw r.error;
+  });
+}
+async function reopen(l) {
+  await act(async function () {
+    if (l.status === 'booked') {
+      var d = await sb.from('clients').delete().eq('lead_id', l.id);
+      if (d.error) throw d.error;
+    }
+    var r = await sb.from('leads').update({ status: l.approved_at ? 'approved' : 'new', booked_at: null, lost_at: null, updated_at: new Date().toISOString() }).eq('id', l.id);
+    if (r.error) throw r.error;
+  }, l.status === 'booked' ? 'Reopened. The client created from this lead was removed.' : null);
+}
+async function deleteLead(l) {
+  if (!window.confirm('Delete ' + (l.name || 'this lead') + ' permanently? This cannot be undone.')) return;
+  await act(async function () { var r = await sb.from('leads').delete().eq('id', l.id); if (r.error) throw r.error; });
+}
+function openWon(l) {
+  var dlg = $('dlg'); dlg.replaceChildren();
+  var cur = ['weekly', 'biweekly', 'monthly'].indexOf(l.frequency) !== -1 ? l.frequency : 'one_time';
+  var plan = h('select', { id: 'w-plan' });
+  [['weekly', 'Recurring: weekly'], ['biweekly', 'Recurring: every 2 weeks'], ['monthly', 'Recurring: monthly'], ['one_time', 'One-time job']].forEach(function (o) {
+    plan.appendChild(h('option', { value: o[0], selected: o[0] === cur }, o[1]));
+  });
+  var price = h('input', { id: 'w-price', type: 'number', min: '0', step: '0.01', value: num(l.price) !== null ? String(num(l.price)) : '' });
+  var monthly = h('input', { id: 'w-monthly', type: 'number', min: '0', step: '0.01' });
+  var priceLbl = h('label', { for: 'w-price' }), monthlyRow = h('div', { class: 'row' }, h('label', { for: 'w-monthly', text: 'Monthly value ($), counts toward MRR' }), monthly);
+  var edited = false;
+  monthly.addEventListener('input', function () { edited = true; });
+  function sync() {
+    var rec = plan.value !== 'one_time';
+    priceLbl.textContent = rec ? 'Price per visit ($)' : 'Job amount ($)';
+    monthlyRow.hidden = !rec;
+    if (rec && !edited) { var m = monthlyFrom(plan.value, num(price.value)); monthly.value = m === null ? '' : (Math.round(m * 100) / 100).toString(); }
+  }
+  plan.addEventListener('change', sync); price.addEventListener('input', sync); sync();
+  var err = h('div', { class: 'fine', style: 'color:var(--crit)' });
+  dlg.appendChild(h('h3', { text: 'Mark as won: ' + (l.name || 'lead') }));
+  dlg.appendChild(h('div', { class: 'fine', text: 'Confirm what they signed up for. This adds them to your clients and updates MRR.' }));
+  dlg.appendChild(h('div', { class: 'row' }, h('label', { for: 'w-plan', text: 'Plan' }), plan));
+  dlg.appendChild(h('div', { class: 'row' }, priceLbl, price));
+  dlg.appendChild(monthlyRow);
+  dlg.appendChild(err);
+  dlg.appendChild(h('div', { class: 'foot' },
+    h('button', { class: 'btn', type: 'button', text: 'Cancel', onclick: function () { dlg.close(); } }),
+    h('button', { class: 'btn primary', type: 'button', text: 'Mark as won', onclick: function () {
+      var p = num(price.value), rec = plan.value !== 'one_time', mv = rec ? num(monthly.value) : null;
+      if (p === null || p <= 0) { err.textContent = 'Enter the price.'; return; }
+      if (rec && (mv === null || mv <= 0)) { err.textContent = 'Enter the monthly value.'; return; }
+      dlg.close();
+      markWon(l, { plan: plan.value, price: p, monthly: mv });
+    } })));
+  if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+}
+async function markWon(l, v) {
+  await act(async function () {
+    var rec = v.plan !== 'one_time', now = new Date();
+    var client = {
+      lead_id: l.id, name: l.name || l.email || 'Unnamed', email: l.email || null, phone: l.phone || null,
+      segment: l.type === 'commercial' ? 'commercial' : 'residential',
+      client_type: rec ? 'recurring' : 'one_time', frequency: v.plan, per_visit_price: v.price,
+      monthly_value: rec ? v.monthly : null, one_time_value: rec ? null : v.price,
+      start_date: dayKey(now), source: l.source || null, status: 'active'
+    };
+    var c = await sb.from('clients').upsert(client, { onConflict: 'lead_id' });
+    if (c.error) throw c.error;
+    var r = await sb.from('leads').update({ status: 'booked', booked_at: now.toISOString(), updated_at: now.toISOString(),
+      frequency: rec ? v.plan : (l.frequency || 'deep'), price: v.price }).eq('id', l.id);
+    if (r.error) throw r.error;
+  }, 'Marked as won and added to clients.');
+}
+
+// ── render: clients ─────────────────────────────────────────
+function renderClients() {
+  var box = $('sec-clients'); box.replaceChildren();
+  box.appendChild(h('h2', null, 'Clients', h('small', { text: 'won leads are added automatically' })));
+  if (state.clientsMissing) {
+    box.appendChild(h('div', { class: 'card' }, 'Client tracking is not set up yet. Run migration_2.sql in the Supabase SQL Editor, then refresh.'));
+    return;
+  }
+  var rec = state.clients.filter(function (c) { return c.client_type === 'recurring'; })
+    .sort(function (a, b) { return (a.status === 'active' ? 0 : 1) - (b.status === 'active' ? 0 : 1) || (num(b.monthly_value) || 0) - (num(a.monthly_value) || 0); });
+  var one = state.clients.filter(function (c) { return c.client_type === 'one_time'; });
+  var oneTotal = one.reduce(function (a, c) { return a + (num(c.one_time_value) || 0); }, 0);
+
+  function clientRow(c) {
+    var ended = c.status === 'ended', isRec = c.client_type === 'recurring';
+    var amt = isRec ? money(num(c.monthly_value)) + '/mo' : money(num(c.one_time_value));
+    var acts = h('div', { class: 'actions' },
+      h('button', { class: 'btn sm', type: 'button', text: 'Edit amount', onclick: function () { editAmount(c); } }),
+      ended ? h('button', { class: 'btn sm', type: 'button', text: 'Reactivate', onclick: function () { setClientStatus(c, 'active'); } })
+            : (isRec ? h('button', { class: 'btn sm', type: 'button', text: 'End', onclick: function () { setClientStatus(c, 'ended'); } }) : null),
+      h('button', { class: 'btn sm danger', type: 'button', text: 'Delete', onclick: function () { deleteClient(c); } }));
+    return h('tr', ended ? { style: 'opacity:0.6' } : null,
+      h('td', { class: 'nm', text: c.name }), h('td', { text: c.segment === 'commercial' ? 'Commercial' : 'Residential' }),
+      h('td', { text: planLabel(c.frequency) }), h('td', { class: 'num', text: amt }),
+      h('td', null, ended ? h('span', { class: 'chip mute' }, h('i', { text: '✕', 'aria-hidden': 'true' }), 'Ended') : h('span', { class: 'chip good' }, h('i', { text: '✓', 'aria-hidden': 'true' }), 'Active')),
+      h('td', { text: c.is_existing ? 'Existing' : (c.start_date || '') }), h('td', null, acts));
+  }
+  function table(rows, amountHead) {
+    if (!rows.length) return h('div', { class: 'empty', text: 'None yet.' });
+    return h('div', { class: 'tbl-wrap' }, h('table', null, h('thead', null, h('tr', null,
+      h('th', { text: 'Client' }), h('th', { text: 'Type' }), h('th', { text: 'Plan' }), h('th', { class: 'num', text: amountHead }),
+      h('th', { text: 'Status' }), h('th', { text: 'Since' }), h('th', { text: '' }))), h('tbody', null, rows.map(clientRow))));
+  }
+  box.appendChild(h('div', { class: 'card' }, h('div', { class: 'label', text: 'Recurring clients' }), table(rec, 'Monthly value')));
+  box.appendChild(h('div', { class: 'card', style: 'margin-top:12px' },
+    h('div', { class: 'label', text: 'One-time jobs · ' + money(oneTotal) + ' total from ' + one.length + ' job' + (one.length === 1 ? '' : 's') }), table(one, 'Amount')));
+
+  // add one client
+  var f = { name: h('input', { type: 'text', id: 'a-name' }), seg: h('select', { id: 'a-seg' }, h('option', { value: 'residential' }, 'Residential'), h('option', { value: 'commercial' }, 'Commercial')),
+    type: h('select', { id: 'a-type' }, h('option', { value: 'recurring' }, 'Recurring'), h('option', { value: 'one_time' }, 'One-time')),
+    amt: h('input', { type: 'number', min: '0', step: '0.01', id: 'a-amt' }) };
+  var addErr = h('div', { class: 'fine' });
+  var addExisting = h('input', { type: 'checkbox', id: 'a-existing' });
+  box.appendChild(h('details', null, h('summary', { text: 'Add a client manually' }),
+    h('div', { class: 'form-row' },
+      h('div', null, h('label', { for: 'a-name', text: 'Name' }), f.name), h('div', null, h('label', { for: 'a-seg', text: 'Segment' }), f.seg),
+      h('div', null, h('label', { for: 'a-type', text: 'Type' }), f.type), h('div', null, h('label', { for: 'a-amt', text: 'Monthly value, or job amount ($)' }), f.amt),
+      h('button', { class: 'btn primary', type: 'button', text: 'Add client', onclick: function () {
+        var a = num(f.amt.value);
+        if (!f.name.value.trim() || a === null) { addErr.textContent = 'Enter a name and an amount.'; return; }
+        addClients([{ name: f.name.value.trim(), segment: f.seg.value, type: f.type.value, amount: a }], addExisting.checked);
+      } })),
+    h('label', { class: 'field-inline', style: 'margin-top:10px;display:flex' }, addExisting, 'Existing client (do not count as new MRR toward the goal)'), addErr));
+
+  // CSV import
+  var ta = h('textarea', { placeholder: 'Paste your MINT Tools client export here (the one that starts with Name,Type,Billing Type,Rate/Clean,...)', style: 'min-height:160px' });
+  var impErr = h('div', { class: 'fine' });
+  var impExisting = h('input', { type: 'checkbox', id: 'i-existing', checked: true });
+  box.appendChild(h('details', null, h('summary', { text: 'Import your existing clients (paste CSV)' }),
+    h('div', { class: 'fine', text: 'Paste the CSV exported from your MINT Tools client database (open the file in a text editor, copy everything, paste it here). Clients already in this list are skipped, so importing twice is safe. Inactive and paused clients come in as ended, and you can reactivate them. A simple 4-column format also works: name, segment, type, amount.' }),
+    h('div', { style: 'margin-top:10px' }, ta),
+    h('label', { class: 'field-inline', style: 'margin-top:10px;display:flex' }, impExisting, 'These are existing clients (do not count as new MRR toward the goal)'),
+    h('div', { style: 'margin-top:10px' }, h('button', { class: 'btn primary', type: 'button', text: 'Import', onclick: function () {
+      var res = parseClientCsv(ta.value, impExisting.checked);
+      if (!res.rows.length) { impErr.textContent = 'No valid rows found' + (res.bad ? ' (' + res.bad + ' line(s) skipped)' : '') + '.'; return; }
+      var have = {};
+      state.clients.forEach(function (c) { have[(c.name || '').trim().toLowerCase()] = true; });
+      var fresh = res.rows.filter(function (r) { return !have[r.name.trim().toLowerCase()]; });
+      var dupes = res.rows.length - fresh.length;
+      var msg = [];
+      if (res.bad) msg.push(res.bad + ' line(s) skipped');
+      if (dupes) msg.push(dupes + ' already in the list, skipped');
+      impErr.textContent = msg.join('. ') + (msg.length ? '.' : '');
+      if (!fresh.length) { impErr.textContent = 'Everyone in that list is already here. ' + impErr.textContent; return; }
+      insertClientRows(fresh);
+    } })), impErr));
+}
+// Reads one CSV line at a time, handling "quoted, fields" and "" inside quotes.
+function csvFields(line) {
+  var out = [], cur = '', q = false;
+  for (var i = 0; i < line.length; i++) {
+    var ch = line[i];
+    if (q) { if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === ',') { out.push(cur.trim()); cur = ''; }
+    else cur += ch;
+  }
+  out.push(cur.trim());
+  return out;
+}
+// Accepts the MINT Tools export (Name, Type, Billing Type, Rate/Clean, Flat Rate, Cleans/Mo, Est MRR,
+// Frequency, Start Date, Status, Notes) or the simple 4-column format. Returns ready-to-insert rows.
+function parseClientCsv(text, existing) {
+  var lines = text.split(/\r?\n/).filter(function (l) { return l.trim(); });
+  var rows = [], bad = 0, today = dayKey(new Date());
+  if (!lines.length) return { rows: rows, bad: 0 };
+  var head = csvFields(lines[0]).map(function (x) { return x.toLowerCase(); });
+  var tools = head.indexOf('est mrr') !== -1 && head.indexOf('name') !== -1;
+  var col = function (name) { return head.indexOf(name); };
+  lines.forEach(function (line, i) {
+    if (i === 0 && (tools || /^name$/i.test(csvFields(line)[0]))) return;
+    var p = csvFields(line);
+    if (tools) {
+      var get = function (name) { var k = col(name); return k === -1 ? '' : (p[k] || ''); };
+      var name = get('name'), seg = get('type').toLowerCase();
+      var rate = num(get('rate/clean')), flat = num(get('flat rate')), cleans = num(get('cleans/mo'));
+      var mrrv = num(get('est mrr').replace(/[$,]/g, ''));
+      if (mrrv === null) mrrv = flat > 0 ? flat : (rate && cleans ? Math.round(rate * cleans * 100) / 100 : null);
+      if (!name || ['residential', 'commercial'].indexOf(seg) === -1 || mrrv === null) { bad++; return; }
+      var freqRaw = get('frequency').toLowerCase().replace(/[\s-]/g, '');
+      var freq = { weekly: 'weekly', biweekly: 'biweekly', monthly: 'monthly', '3x/week': '3x_week' }[freqRaw] || (freqRaw || 'monthly').replace(/[^a-z0-9]+/g, '_');
+      var st = get('status').toLowerCase();
+      var active = st === '' || st === 'active';
+      var sd = get('start date'), notes = get('notes');
+      if (st === 'on pause') notes = (notes ? notes + ' ' : '') + '(On pause when imported)';
+      var row = { name: name, segment: seg, client_type: 'recurring', frequency: freq,
+        per_visit_price: rate > 0 ? rate : null, monthly_value: mrrv, one_time_value: null,
+        status: active ? 'active' : 'ended', ended_at: active ? null : new Date().toISOString(),
+        start_date: /^\d{4}-\d{2}-\d{2}$/.test(sd) ? sd : today, source: 'import', is_existing: !!existing };
+      if (notes) row.notes = notes;
+      rows.push(row);
+    } else {
+      var seg2 = (p[1] || '').toLowerCase(), typ = (p[2] || '').toLowerCase().replace('-', '_').replace(' ', '_');
+      var amt = num(p.slice(3).join('').replace(/[$,\s]/g, ''));
+      if (!p[0] || ['residential', 'commercial'].indexOf(seg2) === -1 || ['recurring', 'one_time'].indexOf(typ) === -1 || amt === null) { bad++; return; }
+      var rec = typ === 'recurring';
+      rows.push({ name: p[0], segment: seg2, client_type: typ, frequency: rec ? 'monthly' : 'one_time',
+        monthly_value: rec ? amt : null, one_time_value: rec ? null : amt, start_date: today, source: 'import', is_existing: !!existing });
+    }
+  });
+  return { rows: rows, bad: bad };
+}
+async function insertClientRows(payload) {
+  await act(async function () {
+    var r = await sb.from('clients').insert(payload);
+    if (r.error) throw r.error;
+  }, payload.length + ' client' + (payload.length === 1 ? '' : 's') + ' imported.');
+}
+async function addClients(rows, existing) {
+  await act(async function () {
+    var payload = rows.map(function (r) {
+      var rec = r.type === 'recurring';
+      return { name: r.name, segment: r.segment, client_type: r.type, frequency: rec ? 'monthly' : 'one_time',
+        monthly_value: rec ? r.amount : null, one_time_value: rec ? null : r.amount, start_date: dayKey(new Date()), source: 'manual', is_existing: !!existing };
+    });
+    var r = await sb.from('clients').insert(payload);
+    if (r.error) throw r.error;
+  }, rows.length + ' client' + (rows.length === 1 ? '' : 's') + ' added.');
+}
+async function editAmount(c) {
+  var isRec = c.client_type === 'recurring';
+  var v = window.prompt(isRec ? 'New monthly value ($) for ' + c.name + ':' : 'New job amount ($) for ' + c.name + ':', String(isRec ? c.monthly_value : c.one_time_value));
+  if (v === null) return;
+  var n = num(v.replace(/[$,]/g, ''));
+  if (n === null || n < 0) { notice('That was not a valid amount.', true); return; }
+  await act(async function () {
+    var r = await sb.from('clients').update(isRec ? { monthly_value: n } : { one_time_value: n }).eq('id', c.id);
+    if (r.error) throw r.error;
+  });
+}
+async function setClientStatus(c, status) {
+  await act(async function () {
+    var r = await sb.from('clients').update({ status: status, ended_at: status === 'ended' ? new Date().toISOString() : null }).eq('id', c.id);
+    if (r.error) throw r.error;
+  });
+}
+async function deleteClient(c) {
+  if (!window.confirm('Delete ' + c.name + ' permanently? If they came from a lead, the lead stays marked as won.')) return;
+  await act(async function () { var r = await sb.from('clients').delete().eq('id', c.id); if (r.error) throw r.error; });
+}
+
+// ── render all ──────────────────────────────────────────────
+function renderAll() {
+  renderNow(); renderFilters(); renderLeads(); renderClosing(); renderList(); renderClients();
+  $('stamp').textContent = state.loadedAt ? 'Updated ' + state.loadedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+}
+
+// ── auth + boot ─────────────────────────────────────────────
+function show(which) {
+  $('setup').hidden = which !== 'setup'; $('login').hidden = which !== 'login'; $('app').hidden = which !== 'app';
+}
+function route(session) {
+  if (session) {
+    show('app');
+    if (!started) {
+      started = true; load();
+      timer = setInterval(function () { if (!document.hidden) load(); }, REFRESH_MS);
+      document.addEventListener('visibilitychange', function () { if (!document.hidden && state.loadedAt && Date.now() - state.loadedAt.getTime() > 15000) load(); });
+    }
+  } else {
+    started = false; if (timer) { clearInterval(timer); timer = null; }
+    show('login');
+  }
+}
+function boot() {
+  if (SUPABASE_URL.indexOf('PASTE_') !== -1 || SUPABASE_PUBLISHABLE_KEY.indexOf('PASTE_') !== -1) { show('setup'); return; }
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+  sb.auth.onAuthStateChange(function (evt, session) { route(session); });
+  sb.auth.getSession().then(function (r) { route(r.data.session); });
+  $('login-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var msg = $('login-msg'); msg.textContent = 'Sending…';
+    var r = await sb.auth.signInWithOtp({ email: $('login-email').value.trim(), options: { emailRedirectTo: window.location.origin + window.location.pathname } });
+    msg.textContent = r.error ? 'Could not send the link: ' + r.error.message : 'Check your email for the login link, then open it on this device.';
+  });
+  $('signout').addEventListener('click', function () { sb.auth.signOut(); });
+  $('refresh').addEventListener('click', function () { load(); });
+}
+window.__mintTest = { state: state, renderAll: renderAll, setClient: function (c) { sb = c; }, groupStats: groupStats, monthlyFrom: monthlyFrom, isFb: isFb, load: load };
+boot();
+})();
+</script>
+</body>
+</html>
