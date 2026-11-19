@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>MINT Cleaning Pros | Year-End Feedback</title>
+<style>
+  :root { --navy:#1f2d4a; --mint:#6fb59a; --mint-dark:#4f9a7e; --bg:#f4f7f6; --line:#d9e2de; --text:#24303f; --muted:#6b7785; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  header { background:var(--navy); color:#fff; padding:18px 20px; text-align:center; }
+  header .brand { font-weight:800; letter-spacing:.14em; font-size:20px; }
+  header .brand span { color:var(--mint); }
+  header .sub { font-size:12px; letter-spacing:.2em; opacity:.75; margin-top:2px; }
+  main { max-width:640px; margin:0 auto; padding:24px 16px 48px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:24px 20px; box-shadow:0 2px 10px rgba(31,45,74,.05); }
+  h1 { font-size:24px; margin:0 0 8px; color:var(--navy); }
+  p.lead { margin:0 0 20px; color:var(--muted); }
+  fieldset { border:0; padding:0; margin:0 0 26px; }
+  legend { font-weight:700; color:var(--navy); margin-bottom:10px; padding:0; }
+  .scale { display:flex; flex-wrap:wrap; gap:8px; }
+  .scale label { position:relative; }
+  .scale input { position:absolute; opacity:0; inset:0; cursor:pointer; }
+  .scale span { display:flex; align-items:center; justify-content:center; width:46px; height:46px; border:1.5px solid var(--line); border-radius:10px; font-weight:700; background:#fff; cursor:pointer; transition:.12s; }
+  .scale input:hover + span { border-color:var(--mint); }
+  .scale input:focus-visible + span { outline:3px solid rgba(111,181,154,.5); }
+  .scale input:checked + span { background:var(--mint); border-color:var(--mint-dark); color:#fff; transform:translateY(-1px); }
+  .ends { display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-top:6px; max-width:520px; }
+  textarea { width:100%; min-height:96px; padding:12px; border:1.5px solid var(--line); border-radius:10px; font:inherit; resize:vertical; }
+  textarea:focus { outline:none; border-color:var(--mint); box-shadow:0 0 0 3px rgba(111,181,154,.25); }
+  .hint { font-size:13px; color:var(--muted); margin-top:4px; }
+  button.primary, a.btn { display:inline-block; background:var(--navy); color:#fff; border:0; border-radius:10px; padding:14px 26px; font:700 16px inherit; cursor:pointer; text-decoration:none; }
+  button.primary:hover, a.btn:hover { background:#16213a; }
+  button.primary:disabled { opacity:.6; cursor:wait; }
+  a.btn.mint { background:var(--mint-dark); }
+  a.btn.mint:hover { background:#3f846a; }
+  .error { color:#b3261e; font-size:14px; margin:0 0 12px; min-height:1em; }
+  .notice { background:#fff8e1; border:1px solid #f0dc9b; border-radius:10px; padding:10px 12px; font-size:14px; margin-bottom:18px; }
+  .center { text-align:center; }
+  .hidden { display:none !important; }
+  footer { text-align:center; font-size:12px; color:var(--muted); padding-bottom:30px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">M<span>I</span>NT</div>
+  <div class="sub">CLEANING PROS</div>
+</header>
+
+<main>
+  <!-- loading -->
+  <div id="view-loading" class="card center"><p>Loading…</p></div>
+
+  <!-- invalid link -->
+  <div id="view-invalid" class="card center hidden">
+    <h1>This link doesn't look right</h1>
+    <p class="lead">Please use the link from your email or text message. If you're still stuck, just reply to that message and we'll sort it out.</p>
+  </div>
+
+  <!-- survey form -->
+  <div id="view-form" class="card hidden">
+    <div id="preview-note" class="notice hidden">Preview mode: answers are not saved.</div>
+    <div id="again-note" class="notice hidden">You've already sent feedback. Submitting again will update your answers.</div>
+    <h1 id="greeting">Hi there</h1>
+    <p class="lead">It's been a great year, and we'd love your honest take on how we're doing so we can keep getting better. It takes about a minute.</p>
+
+    <form id="survey-form" novalidate>
+      <fieldset>
+        <legend>1. Overall, how happy are you with MINT?</legend>
+        <div class="scale" id="scale-overall"></div>
+        <div class="ends"><span>1 = Not happy</span><span>10 = Delighted</span></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>2. How likely are you to recommend MINT to a friend or colleague?</legend>
+        <div class="scale" id="scale-recommend"></div>
+        <div class="ends"><span>0 = Not likely</span><span>10 = Definitely</span></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>3. What's one thing we could do better?</legend>
+        <textarea id="improve" maxlength="2000" placeholder="Big or small, we want to hear it."></textarea>
+      </fieldset>
+
+      <fieldset>
+        <legend>4. Anything our team does especially well?</legend>
+        <textarea id="praise" maxlength="2000" placeholder="Feel free to name anyone who goes above and beyond."></textarea>
+        <div class="hint">Optional. We love passing kind words along to the team.</div>
+      </fieldset>
+
+      <p class="error" id="form-error" role="alert"></p>
+      <button class="primary" id="submit-btn" type="submit">Send my feedback</button>
+    </form>
+  </div>
+
+  <!-- thank you -->
+  <div id="view-thanks" class="card center hidden">
+    <h1>Thank you!</h1>
+    <p class="lead">We read every response, and we'll follow up personally where it helps. We're grateful for the trust you place in us.</p>
+    <div id="google-block" class="hidden">
+      <p>If you'd like to share your experience publicly, a Google review means the world to a small local business like ours.</p>
+      <p><a class="btn mint" id="google-link" href="#" target="_blank" rel="noopener">Leave a Google review</a></p>
+    </div>
+    <p class="hint">- Jake &amp; the MINT team</p>
+  </div>
+</main>
+
+<footer>MINT Cleaning Pros · Thomasville, GA</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="mint-survey-config.js"></script>
+<script>
+(function () {
+  const cfg = window.MINT_SURVEY || {};
+  const params = new URLSearchParams(location.search);
+  const token = (params.get('c') || '').trim();
+  const preview = params.has('preview');
+  const $ = (id) => document.getElementById(id);
+
+  let sb = null;
+  let clientName = '';
+
+  function show(view) {
+    ['loading', 'invalid', 'form', 'thanks'].forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
+  }
+
+  function buildScale(containerId, name, from, to) {
+    const el = $(containerId);
+    for (let i = from; i <= to; i++) {
+      const label = document.createElement('label');
+      label.innerHTML = '<input type="radio" name="' + name + '" value="' + i + '"><span>' + i + '</span>';
+      el.appendChild(label);
+    }
+  }
+  buildScale('scale-overall', 'overall', 1, 10);
+  buildScale('scale-recommend', 'recommend', 0, 10);
+
+  function picked(name) {
+    const r = document.querySelector('input[name="' + name + '"]:checked');
+    return r ? parseInt(r.value, 10) : null;
+  }
+
+  function firstName(s) {
+    return (s || '').trim().split(/\s+/)[0] || '';
+  }
+
+  async function init() {
+    if (preview) {
+      $('preview-note').classList.remove('hidden');
+      clientName = 'Sample Client';
+      $('greeting').textContent = 'Hi Pat,';
+      show('form');
+      return;
+    }
+    if (!token || !cfg.SUPABASE_URL || cfg.SUPABASE_URL.indexOf('YOUR_') === 0) { show('invalid'); return; }
+    try {
+      sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+      const { data, error } = await sb.rpc('get_survey_client', { p_token: token });
+      if (error || !data || !data.length) { show('invalid'); return; }
+      const c = data[0];
+      clientName = c.name || '';
+      const who = firstName(c.contact_name) || c.name || '';
+      $('greeting').textContent = who ? 'Hi ' + who + ',' : 'Hi there,';
+      if (c.already_responded) $('again-note').classList.remove('hidden');
+      show('form');
+    } catch (e) {
+      show('invalid');
+    }
+  }
+
+  async function alertLowScore(overall, recommend, improve, praise) {
+    if (!cfg.EMAILJS_TEMPLATE_ID || !cfg.EMAILJS_SERVICE_ID || !cfg.EMAILJS_PUBLIC_KEY) return;
+    try {
+      await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service_id: cfg.EMAILJS_SERVICE_ID,
+          template_id: cfg.EMAILJS_TEMPLATE_ID,
+          user_id: cfg.EMAILJS_PUBLIC_KEY,
+          template_params: {
+            to_email: cfg.ALERT_EMAIL || '',
+            client: clientName,
+            overall: overall,
+            recommend: recommend,
+            improve: improve || '(none)',
+            praise: praise || '(none)'
+          }
+        })
+      });
+    } catch (e) { /* alert is best-effort; the response is already saved */ }
+  }
+
+  function showThanks() {
+    if (cfg.GOOGLE_REVIEW_URL) {
+      $('google-link').href = cfg.GOOGLE_REVIEW_URL;
+      $('google-block').classList.remove('hidden');
+    }
+    show('thanks');
+    window.scrollTo(0, 0);
+  }
+
+  $('survey-form').addEventListener('submit', async function (ev) {
+    ev.preventDefault();
+    const err = $('form-error');
+    err.textContent = '';
+    const overall = picked('overall');
+    const recommend = picked('recommend');
+    if (overall === null || recommend === null) {
+      err.textContent = 'Please choose a score for questions 1 and 2.';
+      return;
+    }
+    const improve = $('improve').value.trim();
+    const praise = $('praise').value.trim();
+    const btn = $('submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+
+    if (preview) { showThanks(); return; }
+
+    try {
+      const { data, error } = await sb.rpc('submit_survey', {
+        p_token: token, p_overall: overall, p_recommend: recommend, p_improve: improve, p_praise: praise
+      });
+      if (error || data !== true) throw new Error('save failed');
+      const low = cfg.LOW_SCORE_THRESHOLD || 6;
+      if (overall <= low || recommend <= low) alertLowScore(overall, recommend, improve, praise);
+      showThanks();
+    } catch (e) {
+      err.textContent = "Sorry, something went wrong and your answers weren't saved. Please try again in a moment.";
+      btn.disabled = false;
+      btn.textContent = 'Send my feedback';
+    }
+  });
+
+  init();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>MINT Survey Results</title>
+<style>
+  :root { --navy:#1f2d4a; --mint:#6fb59a; --mint-dark:#4f9a7e; --bg:#f4f7f6; --line:#d9e2de; --text:#24303f; --muted:#6b7785; --red:#b3261e; --amber:#b26a00; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  header { background:var(--navy); color:#fff; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  header .brand { font-weight:800; letter-spacing:.14em; } header .brand span { color:var(--mint); }
+  header button { background:transparent; color:#fff; border:1px solid rgba(255,255,255,.4); border-radius:8px; padding:6px 12px; cursor:pointer; }
+  main { max-width:1100px; margin:0 auto; padding:20px 16px 60px; }
+  .hidden { display:none !important; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:16px; }
+  .card h2 { margin:0 0 12px; font-size:16px; color:var(--navy); }
+  .login { max-width:380px; margin:60px auto; }
+  input[type=text], input[type=email], input[type=password], select, textarea { width:100%; padding:9px 10px; border:1.5px solid var(--line); border-radius:8px; font:inherit; }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--mint); }
+  label.f { display:block; font-size:13px; color:var(--muted); margin:10px 0 3px; }
+  button.btn { background:var(--navy); color:#fff; border:0; border-radius:8px; padding:9px 16px; font-weight:600; cursor:pointer; }
+  button.btn.ghost { background:#fff; color:var(--navy); border:1.5px solid var(--line); }
+  button.btn.small { padding:4px 9px; font-size:13px; }
+  .err { color:var(--red); font-size:14px; min-height:1.2em; }
+  .tabs { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+  .tabs button { background:#fff; border:1.5px solid var(--line); border-radius:999px; padding:7px 16px; cursor:pointer; font-weight:600; color:var(--muted); }
+  .tabs button.on { background:var(--navy); border-color:var(--navy); color:#fff; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin-bottom:16px; }
+  .kpi { background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+  .kpi .v { font-size:30px; font-weight:800; color:var(--navy); line-height:1.1; }
+  .kpi .l { font-size:13px; color:var(--muted); }
+  .kpi .s { font-size:12px; color:var(--muted); margin-top:2px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:8px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+  .tablewrap { overflow-x:auto; }
+  .dist { display:flex; align-items:flex-end; gap:6px; height:120px; }
+  .dist .col { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; font-size:12px; color:var(--muted); }
+  .dist .bar { width:100%; background:var(--mint); border-radius:4px 4px 0 0; min-height:2px; }
+  .dist .bar.low { background:#e0a39e; }
+  .pill { display:inline-block; padding:1px 9px; border-radius:999px; font-size:12px; font-weight:700; }
+  .pill.good { background:#e3f3ec; color:#2f7a5d; } .pill.mid { background:#fff3d6; color:var(--amber); } .pill.bad { background:#fbe3e1; color:var(--red); }
+  .followup { border-left:4px solid var(--red); padding:10px 12px; background:#fff7f6; border-radius:6px; margin-bottom:10px; }
+  .followup.done { border-left-color:var(--mint); background:#f5fbf8; opacity:.8; }
+  .followup .top { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; font-weight:700; }
+  .quote { border-left:3px solid var(--mint); padding:4px 10px; margin:0 0 10px; }
+  .quote .who { font-size:12px; color:var(--muted); }
+  .muted { color:var(--muted); } .row { display:flex; gap:10px; flex-wrap:wrap; align-items:end; }
+  .row > div { flex:1; min-width:150px; }
+  .filters { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+  .filters > * { flex:1; min-width:140px; }
+  .link-cell { max-width:210px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:ui-monospace,Menlo,monospace; font-size:12px; }
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:10px 18px; border-radius:999px; font-size:14px; opacity:0; transition:.2s; pointer-events:none; }
+  .toast.on { opacity:1; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">M<span>I</span>NT <span style="font-weight:400;letter-spacing:.05em;color:#fff;opacity:.8;">Survey Results</span></div>
+  <button id="logout-btn" class="hidden">Sign out</button>
+</header>
+
+<main>
+  <!-- LOGIN -->
+  <div id="login" class="card login hidden">
+    <h2>Sign in</h2>
+    <label class="f" for="email">Email</label><input type="email" id="email" autocomplete="username">
+    <label class="f" for="password">Password</label><input type="password" id="password" autocomplete="current-password">
+    <p class="err" id="login-err"></p>
+    <button class="btn" id="login-btn">Sign in</button>
+    <p class="muted" style="font-size:12px;margin-top:14px;">Use the user you created in Supabase → Authentication → Users.</p>
+  </div>
+
+  <!-- APP -->
+  <div id="app" class="hidden">
+    <div class="tabs">
+      <button data-tab="overview" class="on">Overview</button>
+      <button data-tab="responses">All responses</button>
+      <button data-tab="clients">Clients &amp; links</button>
+    </div>
+
+    <!-- OVERVIEW -->
+    <section id="tab-overview">
+      <div class="kpis" id="kpis"></div>
+
+      <div class="card"><h2>Needs a follow-up call</h2><div id="followups"></div></div>
+
+      <div class="card"><h2>Score distribution (overall, 1-10)</h2><div class="dist" id="dist"></div></div>
+
+      <div class="card"><h2>By crew</h2><div class="tablewrap"><table id="crew-table"></table></div>
+        <p class="muted" style="font-size:12px;margin:8px 0 0;">Small samples swing easily. Use this alongside Tammy's QC and the comments, not as a ranking.</p></div>
+
+      <div class="card"><h2>Shout-outs 🙌</h2><div id="praise"></div></div>
+      <div class="card"><h2>What we could do better</h2><div id="improve"></div></div>
+    </section>
+
+    <!-- RESPONSES -->
+    <section id="tab-responses" class="hidden">
+      <div class="card">
+        <div class="filters">
+          <input type="text" id="f-search" placeholder="Search names and comments">
+          <select id="f-crew"><option value="">All crews</option></select>
+          <select id="f-type"><option value="">Commercial + residential</option><option value="commercial">Commercial</option><option value="residential">Residential</option></select>
+          <button class="btn ghost" id="export-responses">Export CSV</button>
+        </div>
+        <div class="tablewrap"><table id="resp-table"></table></div>
+      </div>
+    </section>
+
+    <!-- CLIENTS -->
+    <section id="tab-clients" class="hidden">
+      <div class="card">
+        <h2>Add a client</h2>
+        <div class="row">
+          <div><label class="f">Client / business name *</label><input type="text" id="c-name"></div>
+          <div><label class="f">Contact name</label><input type="text" id="c-contact"></div>
+          <div><label class="f">Email</label><input type="email" id="c-email"></div>
+          <div><label class="f">Phone</label><input type="text" id="c-phone"></div>
+          <div><label class="f">Type</label><select id="c-type"><option value="commercial">Commercial</option><option value="residential">Residential</option></select></div>
+          <div><label class="f">Crew</label><input type="text" id="c-crew" list="crew-list" placeholder="e.g. Team A"></div>
+          <div style="flex:0 0 auto;"><button class="btn" id="c-add">Add</button></div>
+        </div>
+        <datalist id="crew-list"></datalist>
+        <p class="err" id="c-err"></p>
+      </div>
+
+      <div class="card">
+        <h2>Bulk import</h2>
+        <p class="muted" style="margin-top:0;">Paste rows copied from a spreadsheet or CSV. First row must be headers: <code>name, contact_name, email, phone, type, crew</code> (only <code>name</code> is required; <code>type</code> is commercial or residential).</p>
+        <textarea id="import-text" rows="5" placeholder="name,contact_name,email,phone,type,crew&#10;AMB Wealth,Abbey,abbey@example.com,2295551234,commercial,Team A"></textarea>
+        <p style="margin-bottom:0;"><button class="btn" id="import-btn">Import</button> <span class="err" id="import-err"></span></p>
+      </div>
+
+      <div class="card">
+        <div class="row" style="align-items:center;">
+          <h2 style="margin:0;flex:1;">Clients &amp; survey links</h2>
+          <div style="flex:0 0 auto;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn ghost small" id="mark-all-sent">Mark all as sent</button>
+            <button class="btn ghost small" id="export-links">Export links CSV (for mail merge)</button>
+          </div>
+        </div>
+        <div class="tablewrap"><table id="client-table"></table></div>
+      </div>
+    </section>
+  </div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="mint-survey-config.js"></script>
+<script>
+(function () {
+  const cfg = window.MINT_SURVEY || {};
+  const LOW = cfg.LOW_SCORE_THRESHOLD || 6;
+  const $ = (id) => document.getElementById(id);
+  const sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+
+  let clients = [];      // survey_clients rows
+  let responses = [];    // survey_responses rows joined with client info
+  const clientById = {};
+
+  /* ---------- helpers ---------- */
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  function avg(a) { return a.length ? a.reduce((x, y) => x + y, 0) / a.length : null; }
+  function f1(n) { return n == null ? '–' : n.toFixed(1); }
+  function pillClass(n) { return n >= 9 ? 'good' : n > LOW ? 'mid' : 'bad'; }
+  function pill(n) { return '<span class="pill ' + pillClass(n) + '">' + n + '</span>'; }
+  function dateStr(iso) { return iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : ''; }
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 1800); }
+  function firstName(s) { return (s || '').trim().split(/\s+/)[0] || ''; }
+
+  function surveyBase() {
+    if (cfg.SURVEY_PAGE_URL) return cfg.SURVEY_PAGE_URL;
+    return new URL('mint-survey.html', location.href).href;
+  }
+  function linkFor(c) { return surveyBase() + '?c=' + encodeURIComponent(c.token); }
+
+  function newToken() {
+    const alphabet = 'abcdefghijkmnpqrstuvwxyz23456789';
+    const bytes = new Uint8Array(12);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, b => alphabet[b % alphabet.length]).join('');
+  }
+
+  function csvEscape(v) {
+    const s = String(v == null ? '' : v);
+    return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  function downloadCSV(filename, rows) {
+    const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function parseDelimited(text) {
+    const first = text.split(/\r?\n/)[0] || '';
+    const delim = first.indexOf('\t') >= 0 ? '\t' : ',';
+    const rows = []; let row = [], cell = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (q) {
+        if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+        else if (ch === '"') q = false;
+        else cell += ch;
+      } else if (ch === '"') q = true;
+      else if (ch === delim) { row.push(cell); cell = ''; }
+      else if (ch === '\n' || ch === '\r') {
+        if (ch === '\r' && text[i + 1] === '\n') i++;
+        row.push(cell); cell = '';
+        if (row.some(c => c.trim() !== '')) rows.push(row);
+        row = [];
+      } else cell += ch;
+    }
+    row.push(cell);
+    if (row.some(c => c.trim() !== '')) rows.push(row);
+    return rows;
+  }
+
+  /* ---------- auth ---------- */
+  async function init() {
+    const { data } = await sb.auth.getSession();
+    if (data && data.session) startApp(); else showLogin();
+  }
+  function showLogin() {
+    $('login').classList.remove('hidden');
+    $('app').classList.add('hidden');
+    $('logout-btn').classList.add('hidden');
+  }
+  async function startApp() {
+    $('login').classList.add('hidden');
+    $('app').classList.remove('hidden');
+    $('logout-btn').classList.remove('hidden');
+    await loadAll();
+  }
+  $('login-btn').addEventListener('click', async () => {
+    $('login-err').textContent = '';
+    const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
+    if (error) { $('login-err').textContent = error.message; return; }
+    startApp();
+  });
+  $('password').addEventListener('keydown', e => { if (e.key === 'Enter') $('login-btn').click(); });
+  $('logout-btn').addEventListener('click', async () => { await sb.auth.signOut(); showLogin(); });
+
+  /* ---------- data ---------- */
+  async function loadAll() {
+    const [c, r] = await Promise.all([
+      sb.from('survey_clients').select('*').order('name'),
+      sb.from('survey_responses').select('*').order('submitted_at', { ascending: false })
+    ]);
+    if (c.error || r.error) { toast('Could not load data: ' + ((c.error || r.error).message)); return; }
+    clients = c.data || [];
+    Object.keys(clientById).forEach(k => delete clientById[k]);
+    clients.forEach(x => { clientById[x.id] = x; });
+    responses = (r.data || []).map(x => {
+      const cl = clientById[x.client_id] || {};
+      return Object.assign({}, x, { name: cl.name || '(deleted)', contact_name: cl.contact_name, email: cl.email, phone: cl.phone, client_type: cl.client_type, crew: cl.crew || '' });
+    });
+    renderAll();
+  }
+  function renderAll() { renderOverview(); renderResponses(); renderClients(); fillCrewFilters(); }
+
+  function crews() {
+    return Array.from(new Set(clients.map(c => (c.crew || '').trim()).filter(Boolean))).sort();
+  }
+  function fillCrewFilters() {
+    const list = crews();
+    const sel = $('f-crew'), cur = sel.value;
+    sel.innerHTML = '<option value="">All crews</option>' + list.map(c => '<option>' + esc(c) + '</option>').join('');
+    sel.value = list.indexOf(cur) >= 0 ? cur : '';
+    $('crew-list').innerHTML = list.map(c => '<option value="' + esc(c) + '">').join('');
+  }
+
+  /* ---------- overview ---------- */
+  function renderOverview() {
+    const n = responses.length;
+    const rate = clients.length ? Math.round(n / clients.length * 100) : 0;
+    const overallAvg = avg(responses.map(r => r.overall));
+    const prom = responses.filter(r => r.recommend >= 9).length;
+    const det = responses.filter(r => r.recommend <= 6).length;
+    const nps = n ? Math.round((prom - det) / n * 100) : null;
+    const open = responses.filter(r => !r.followed_up && (r.overall <= LOW || r.recommend <= LOW)).length;
+    const sent = clients.filter(c => c.sent_at).length;
+
+    $('kpis').innerHTML =
+      kpi(n + ' / ' + clients.length, 'Responses', rate + '% response rate · ' + sent + ' marked sent') +
+      kpi(f1(overallAvg), 'Average overall score', 'out of 10') +
+      kpi(nps == null ? '–' : (nps > 0 ? '+' : '') + nps, 'Recommend score (NPS)', prom + ' promoters · ' + det + ' detractors') +
+      kpi(open, 'Open follow-ups', 'score of ' + LOW + ' or lower');
+
+    // follow-ups
+    const low = responses.filter(r => r.overall <= LOW || r.recommend <= LOW)
+      .sort((a, b) => (a.followed_up - b.followed_up) || (new Date(b.submitted_at) - new Date(a.submitted_at)));
+    $('followups').innerHTML = low.length ? low.map(r => {
+      const contact = [esc(r.contact_name || ''), r.phone ? '<a href="tel:' + esc(r.phone) + '">' + esc(r.phone) + '</a>' : '', r.email ? '<a href="mailto:' + esc(r.email) + '">' + esc(r.email) + '</a>' : ''].filter(Boolean);
+      return '<div class="followup ' + (r.followed_up ? 'done' : '') + '" data-id="' + r.id + '">' +
+        '<div class="top"><span>' + esc(r.name) + ' · overall ' + pill(r.overall) + ' · recommend ' + pill(r.recommend) + '</span><span class="muted" style="font-weight:400;">' + dateStr(r.submitted_at) + '</span></div>' +
+        (contact.length ? '<div class="muted">' + contact.join(' · ') + '</div>' : '') +
+        (r.improve ? '<div style="margin:6px 0;">“' + esc(r.improve) + '”</div>' : '') +
+        '<div class="row" style="align-items:center;margin-top:6px;">' +
+          '<div style="flex:0 0 auto;"><label><input type="checkbox" data-act="followed" ' + (r.followed_up ? 'checked' : '') + '> Followed up</label></div>' +
+          '<div><input type="text" data-act="note" placeholder="Notes (what you said / what you\'ll fix)" value="' + esc(r.followup_note || '') + '"></div>' +
+        '</div></div>';
+    }).join('') : '<p class="muted">No low scores. 🎉</p>';
+
+    // distribution
+    const counts = Array.from({ length: 10 }, (_, i) => responses.filter(r => r.overall === i + 1).length);
+    const max = Math.max.apply(null, counts.concat([1]));
+    $('dist').innerHTML = counts.map((c, i) =>
+      '<div class="col">' + c + '<div class="bar ' + (i + 1 <= LOW ? 'low' : '') + '" style="height:' + Math.round(c / max * 90) + '%"></div>' + (i + 1) + '</div>').join('');
+
+    // crew table
+    const groups = {};
+    responses.forEach(r => { const k = r.crew || '(unassigned)'; (groups[k] = groups[k] || []).push(r); });
+    const keys = Object.keys(groups).sort();
+    $('crew-table').innerHTML = keys.length
+      ? '<tr><th>Crew</th><th>Responses</th><th>Avg overall</th><th>Avg recommend</th><th>Shout-outs</th></tr>' +
+        keys.map(k => {
+          const g = groups[k];
+          return '<tr><td>' + esc(k) + '</td><td>' + g.length + '</td><td>' + f1(avg(g.map(r => r.overall))) + '</td><td>' + f1(avg(g.map(r => r.recommend))) + '</td><td>' + g.filter(r => (r.praise || '').trim()).length + '</td></tr>';
+        }).join('')
+      : '<tr><td class="muted">No responses yet.</td></tr>';
+
+    // comments
+    $('praise').innerHTML = commentList(responses.filter(r => (r.praise || '').trim()), 'praise');
+    $('improve').innerHTML = commentList(responses.filter(r => (r.improve || '').trim()), 'improve');
+  }
+  function kpi(v, l, s) { return '<div class="kpi"><div class="v">' + esc(v) + '</div><div class="l">' + esc(l) + '</div><div class="s">' + esc(s) + '</div></div>'; }
+  function commentList(rows, field) {
+    if (!rows.length) return '<p class="muted">Nothing yet.</p>';
+    return rows.map(r => '<div class="quote">“' + esc(r[field]) + '”<div class="who">' + esc(r.name) + (r.crew ? ' · ' + esc(r.crew) : '') + ' · ' + dateStr(r.submitted_at) + '</div></div>').join('');
+  }
+
+  // follow-up edits (event delegation)
+  $('followups').addEventListener('change', async (e) => {
+    const box = e.target.closest('.followup'); if (!box) return;
+    const id = box.dataset.id;
+    let patch = null;
+    if (e.target.dataset.act === 'followed') patch = { followed_up: e.target.checked };
+    if (e.target.dataset.act === 'note') patch = { followup_note: e.target.value };
+    if (!patch) return;
+    const { error } = await sb.from('survey_responses').update(patch).eq('id', id);
+    if (error) { toast('Save failed'); return; }
+    const r = responses.find(x => x.id === id); Object.assign(r, patch);
+    if (patch.followed_up !== undefined) renderOverview();
+    toast('Saved');
+  });
+
+  /* ---------- responses tab ---------- */
+  function filteredResponses() {
+    const q = $('f-search').value.trim().toLowerCase(), crew = $('f-crew').value, type = $('f-type').value;
+    return responses.filter(r =>
+      (!crew || r.crew === crew) && (!type || r.client_type === type) &&
+      (!q || [r.name, r.contact_name, r.improve, r.praise].join(' ').toLowerCase().indexOf(q) >= 0));
+  }
+  function renderResponses() {
+    const rows = filteredResponses();
+    $('resp-table').innerHTML = '<tr><th>Date</th><th>Client</th><th>Crew</th><th>Overall</th><th>Recommend</th><th>Could do better</th><th>Does well</th><th>Followed up</th></tr>' +
+      (rows.length ? rows.map(r => '<tr><td>' + dateStr(r.submitted_at) + '</td><td>' + esc(r.name) + '<div class="muted">' + esc(r.client_type || '') + '</div></td><td>' + esc(r.crew) + '</td><td>' + pill(r.overall) + '</td><td>' + pill(r.recommend) + '</td><td>' + esc(r.improve) + '</td><td>' + esc(r.praise) + '</td><td>' + (r.followed_up ? '✓' : (r.overall <= LOW || r.recommend <= LOW ? '<span style="color:var(--red)">open</span>' : '')) + '</td></tr>').join('') : '<tr><td colspan="8" class="muted">No responses match.</td></tr>');
+  }
+  ['f-search', 'f-crew', 'f-type'].forEach(id => $(id).addEventListener('input', renderResponses));
+  $('export-responses').addEventListener('click', () => {
+    const rows = filteredResponses();
+    downloadCSV('mint-survey-responses.csv', [['date', 'client', 'type', 'crew', 'contact', 'email', 'phone', 'overall', 'recommend', 'could_do_better', 'does_well', 'followed_up', 'followup_note']]
+      .concat(rows.map(r => [r.submitted_at, r.name, r.client_type, r.crew, r.contact_name, r.email, r.phone, r.overall, r.recommend, r.improve, r.praise, r.followed_up, r.followup_note])));
+  });
+
+  /* ---------- clients tab ---------- */
+  function textFor(c) {
+    const who = firstName(c.contact_name) || firstName(c.name);
+    const place = c.client_type === 'residential' ? 'your home' : 'your space';
+    return 'Hi ' + who + ', it\'s Jake at MINT Cleaning Pros. As we wrap up the year, I\'d love 60 seconds of your honest feedback on how we\'re doing with ' + place + ': ' + linkFor(c) + ' Thank you for trusting us!';
+  }
+  function renderClients() {
+    const responded = new Set(responses.map(r => r.client_id));
+    $('client-table').innerHTML = '<tr><th>Client</th><th>Type / crew</th><th>Contact</th><th>Status</th><th>Link</th><th></th></tr>' +
+      (clients.length ? clients.map(c => {
+        const status = responded.has(c.id) ? '<span class="pill good">responded</span>' : (c.sent_at ? '<span class="pill mid">sent ' + dateStr(c.sent_at) + '</span>' : '<span class="pill" style="background:#eef1f4;color:var(--muted)">not sent</span>');
+        return '<tr data-id="' + c.id + '"><td>' + esc(c.name) + '</td><td>' + esc(c.client_type) + (c.crew ? '<div class="muted">' + esc(c.crew) + '</div>' : '') + '</td>' +
+          '<td>' + esc(c.contact_name || '') + '<div class="muted">' + esc(c.email || '') + (c.email && c.phone ? ' · ' : '') + esc(c.phone || '') + '</div></td>' +
+          '<td>' + status + '</td><td class="link-cell" title="' + esc(linkFor(c)) + '">' + esc(linkFor(c)) + '</td>' +
+          '<td style="white-space:nowrap;"><button class="btn ghost small" data-act="copylink">Copy link</button> <button class="btn ghost small" data-act="copytext">Copy text</button> <button class="btn ghost small" data-act="sent">' + (c.sent_at ? 'Unmark sent' : 'Mark sent') + '</button> <button class="btn ghost small" data-act="del">✕</button></td></tr>';
+      }).join('') : '<tr><td colspan="6" class="muted">No clients yet. Add one above or paste a list.</td></tr>');
+  }
+  async function copy(text, msg) {
+    try { await navigator.clipboard.writeText(text); toast(msg); } catch (e) { window.prompt('Copy this:', text); }
+  }
+  $('client-table').addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-act]'); if (!btn) return;
+    const id = btn.closest('tr').dataset.id; const c = clientById[id]; if (!c) return;
+    const act = btn.dataset.act;
+    if (act === 'copylink') copy(linkFor(c), 'Link copied');
+    if (act === 'copytext') copy(textFor(c), 'Text message copied');
+    if (act === 'sent') {
+      const v = c.sent_at ? null : new Date().toISOString();
+      const { error } = await sb.from('survey_clients').update({ sent_at: v }).eq('id', id);
+      if (error) return toast('Save failed');
+      c.sent_at = v; renderClients(); renderOverview();
+    }
+    if (act === 'del') {
+      if (!confirm('Delete ' + c.name + ' and any survey response from them?')) return;
+      const { error } = await sb.from('survey_clients').delete().eq('id', id);
+      if (error) return toast('Delete failed');
+      await loadAll();
+    }
+  });
+
+  $('c-add').addEventListener('click', async () => {
+    const err = $('c-err'); err.textContent = '';
+    const name = $('c-name').value.trim();
+    if (!name) { err.textContent = 'Name is required.'; return; }
+    const row = { token: newToken(), name: name, contact_name: $('c-contact').value.trim() || null, email: $('c-email').value.trim() || null, phone: $('c-phone').value.trim() || null, client_type: $('c-type').value, crew: $('c-crew').value.trim() || null };
+    const { error } = await sb.from('survey_clients').insert(row);
+    if (error) { err.textContent = error.message; return; }
+    ['c-name', 'c-contact', 'c-email', 'c-phone'].forEach(id => { $(id).value = ''; });
+    toast('Client added'); await loadAll();
+  });
+
+  $('import-btn').addEventListener('click', async () => {
+    const err = $('import-err'); err.textContent = '';
+    const rows = parseDelimited($('import-text').value);
+    if (rows.length < 2) { err.textContent = 'Need a header row plus at least one client.'; return; }
+    const head = rows[0].map(h => h.trim().toLowerCase().replace(/[\s-]+/g, '_'));
+    const idx = (...names) => { for (const n of names) { const i = head.indexOf(n); if (i >= 0) return i; } return -1; };
+    const iName = idx('name', 'client', 'business', 'company'), iContact = idx('contact_name', 'contact'), iEmail = idx('email'), iPhone = idx('phone', 'mobile'), iType = idx('type', 'client_type'), iCrew = idx('crew', 'team');
+    if (iName < 0) { err.textContent = 'Could not find a "name" column.'; return; }
+    const get = (r, i) => (i >= 0 && r[i] != null ? r[i].trim() : '');
+    const out = rows.slice(1).filter(r => get(r, iName)).map(r => ({
+      token: newToken(), name: get(r, iName), contact_name: get(r, iContact) || null, email: get(r, iEmail) || null, phone: get(r, iPhone) || null,
+      client_type: /^res/i.test(get(r, iType)) ? 'residential' : 'commercial', crew: get(r, iCrew) || null
+    }));
+    if (!out.length) { err.textContent = 'No valid rows found.'; return; }
+    const { error } = await sb.from('survey_clients').insert(out);
+    if (error) { err.textContent = error.message; return; }
+    $('import-text').value = ''; toast(out.length + ' clients imported'); await loadAll();
+  });
+
+  $('export-links').addEventListener('click', () => {
+    downloadCSV('mint-survey-links.csv', [['name', 'first_name', 'contact_name', 'email', 'phone', 'type', 'crew', 'survey_link']]
+      .concat(clients.map(c => [c.name, firstName(c.contact_name) || firstName(c.name), c.contact_name, c.email, c.phone, c.client_type, c.crew, linkFor(c)])));
+  });
+  $('mark-all-sent').addEventListener('click', async () => {
+    const unsent = clients.filter(c => !c.sent_at); if (!unsent.length) return toast('Everyone is already marked sent');
+    if (!confirm('Mark ' + unsent.length + ' clients as sent?')) return;
+    const now = new Date().toISOString();
+    const { error } = await sb.from('survey_clients').update({ sent_at: now }).in('id', unsent.map(c => c.id));
+    if (error) return toast('Save failed');
+    await loadAll();
+  });
+
+  /* ---------- tabs ---------- */
+  document.querySelector('.tabs').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-tab]'); if (!b) return;
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+    ['overview', 'responses', 'clients'].forEach(t => $('tab-' + t).classList.toggle('hidden', t !== b.dataset.tab));
+  });
+
+  init();
+})();
+</script>
+</body>
+</html>
