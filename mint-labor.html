@@ -54,7 +54,7 @@
     margin-bottom: 6px;
     font-weight: 500;
   }
-  input[type="text"], input[type="number"] {
+  input[type="text"], input[type="number"], input[type="date"] {
     width: 100%;
     padding: 9px 10px;
     border: 1px solid var(--border);
@@ -165,18 +165,29 @@
     padding: 5px 8px;
     font-size: 13px;
   }
+  .week-preview { font-size: 12px; color: var(--green-dark); margin-top: 6px; min-height: 16px; }
+  .notice { background: #FFF6DB; border: 1px solid #EBD28A; color: #6B5310; border-radius: var(--radius); padding: 12px 14px; margin-bottom: 20px; font-size: 13px; line-height: 1.5; }
+  .notice h3 { font-size: 13px; margin-bottom: 6px; }
+  .chip { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: #FFF6DB; border: 1px solid #EBD28A; color: #6B5310; margin-left: 6px; font-weight: 500; }
+  .muted { color: var(--text-muted); font-size: 12px; }
+  tr.editing td { background: #FBFBF9; }
+  tr.editing input { padding: 6px 8px; font-size: 13px; }
+  .row-actions { white-space: nowrap; text-align: right; }
 </style>
 </head>
 <body>
 
   <h1>MINT Labor % Tracker</h1>
-  <div class="subtitle">Weekly revenue vs. payroll — track labor cost % over time</div>
+  <div class="subtitle">Weekly revenue vs. payroll, by pay week (Thursday to Wednesday)</div>
+
+  <div id="notice"></div>
 
   <div class="card">
     <div class="form-grid">
       <div>
-        <label for="dateRange">Date Range</label>
-        <input type="text" id="dateRange" placeholder="e.g. Sep 11 - Sep 17">
+        <label for="weekDate">Pay week (pick any day in it)</label>
+        <input type="date" id="weekDate">
+        <div class="week-preview" id="weekPreview"></div>
       </div>
       <div>
         <label for="revenue">Revenue ($)</label>
@@ -191,11 +202,11 @@
         <input type="text" id="notes" placeholder="optional">
       </div>
       <div>
-        <button class="primary" onclick="addWeek()">Add Week</button>
+        <button class="primary" id="addBtn">Add Week</button>
       </div>
     </div>
     <div class="target-row">
-      Target labor %: <input type="number" id="targetPct" value="35" step="1" onchange="render()">%
+      Target labor %: <input type="number" id="targetPct" value="35" step="1">%
       <span style="margin-left: 6px;">(used to flag weeks green/red)</span>
     </div>
   </div>
@@ -203,17 +214,17 @@
   <div class="stats">
     <div class="stat">
       <div class="label">Average Labor %</div>
-      <div class="value" id="statAvg">—</div>
+      <div class="value" id="statAvg">&mdash;</div>
       <div class="sub" id="statAvgSub"></div>
     </div>
     <div class="stat">
       <div class="label">Trailing 4-Week Avg</div>
-      <div class="value" id="statTrailing">—</div>
+      <div class="value" id="statTrailing">&mdash;</div>
       <div class="sub" id="statTrailingSub"></div>
     </div>
     <div class="stat">
-      <div class="label">Last Week</div>
-      <div class="value" id="statLast">—</div>
+      <div class="label">Latest Week</div>
+      <div class="value" id="statLast">&mdash;</div>
       <div class="sub" id="statLastSub"></div>
     </div>
     <div class="stat">
@@ -227,7 +238,7 @@
     <table>
       <thead>
         <tr>
-          <th>Date Range</th>
+          <th>Pay Week</th>
           <th>Revenue</th>
           <th>Payroll</th>
           <th>Labor %</th>
@@ -241,158 +252,268 @@
   </div>
 
 <script>
-const STORAGE_KEY = 'mint_labor_v1';
+// ───────── Storage ─────────
+// v2 stores each week as a real date (the Thursday the pay week starts). Your old v1 entries are copied over
+// once and the original v1 data is left untouched in your browser as a backup.
+const KEY_V2 = 'mint_labor_v2';
+const KEY_V1 = 'mint_labor_v1';
+const TARGET_KEY = 'mint_labor_target';
+const THURSDAY = 4;
+
+// ───────── Dates (local time, no time zone surprises) ─────────
+const pad = n => String(n).padStart(2, '0');
+const toISO = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+function fromISO(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+function thursdayOnOrBefore(d) { return addDays(d, -((d.getDay() - THURSDAY + 7) % 7)); }
+const MONTHS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+function shortDate(d) { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+function weekLabel(startISO) {
+  const s = fromISO(startISO), e = addDays(s, 6);
+  const yr = s.getFullYear() !== new Date().getFullYear() ? ', ' + s.getFullYear() : '';
+  return shortDate(s) + ' – ' + shortDate(e) + yr;
+}
+function fullWeekLabel(startISO) {
+  const s = fromISO(startISO), e = addDays(s, 6);
+  const f = d => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  return f(s) + ' – ' + f(e);
+}
+
+// Turn an old free-text range like "Oct.29-Nov.4" into the date the week starts.
+function parseLegacyStart(text, createdAt) {
+  const m = String(text || '').match(/([A-Za-z]{3,9})\.?\s*(\d{1,2})/);
+  if (!m) return null;
+  const mi = MONTHS.indexOf(m[1].slice(0, 3).toLowerCase());
+  const day = parseInt(m[2], 10);
+  if (mi === -1 || day < 1 || day > 31) return null;
+  const made = createdAt ? new Date(createdAt) : new Date();
+  let year = isNaN(made) ? new Date().getFullYear() : made.getFullYear();
+  let d = new Date(year, mi, day);
+  if (d.getTime() - made.getTime() > 45 * 86400000) d = new Date(year - 1, mi, day);   // e.g. a December week entered in January
+  return d;
+}
+
+function migrateV1(old) {
+  return old.map(w => {
+    const start = parseLegacyStart(w.dateRange, w.createdAt);
+    let weekStart = null, adjusted = false;
+    if (start) {
+      const th = thursdayOnOrBefore(start);
+      adjusted = th.getTime() !== start.getTime();
+      weekStart = toISO(th);
+    }
+    return { id: w.id, weekStart, revenue: w.revenue, payroll: w.payroll, notes: w.notes || '', createdAt: w.createdAt,
+             legacyRange: w.dateRange, adjusted };
+  });
+}
 
 function loadData() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    return [];
+    const v2 = localStorage.getItem(KEY_V2);
+    if (v2 !== null) return JSON.parse(v2);
+    const v1 = localStorage.getItem(KEY_V1);
+    const data = v1 ? migrateV1(JSON.parse(v1)) : [];
+    localStorage.setItem(KEY_V2, JSON.stringify(data));
+    return data;
+  } catch (e) { return []; }
+}
+function saveData(data) { localStorage.setItem(KEY_V2, JSON.stringify(data)); }
+
+// ───────── Helpers ─────────
+function fmtMoney(n) { return '$' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function laborPct(revenue, payroll) { return revenue ? (payroll / revenue) * 100 : 0; }
+function el(tag, attrs, ...kids) {
+  const node = document.createElement(tag);
+  for (const k in (attrs || {})) {
+    if (k === 'class') node.className = attrs[k];
+    else if (k.startsWith('on')) node.addEventListener(k.slice(2), attrs[k]);
+    else node.setAttribute(k, attrs[k]);
   }
+  kids.forEach(c => c != null && node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c));
+  return node;
 }
+const $ = id => document.getElementById(id);
+function getTarget() { return parseFloat($('targetPct').value) || 35; }
 
-function saveData(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+// Dated weeks in true calendar order, oldest first.
+function sortedWeeks(data) { return data.filter(w => w.weekStart).sort((a, b) => (a.weekStart < b.weekStart ? -1 : a.weekStart > b.weekStart ? 1 : 0)); }
+
+let editingId = null;
+
+// ───────── Form ─────────
+function updatePreview() {
+  const v = $('weekDate').value;
+  if (!v) { $('weekPreview').textContent = ''; return; }
+  const picked = fromISO(v), start = thursdayOnOrBefore(picked);
+  const same = start.getTime() === picked.getTime();
+  $('weekPreview').textContent = (same ? 'Pay week: ' : 'Snapped to the pay week: ') + fullWeekLabel(toISO(start));
 }
-
-function fmtMoney(n) {
-  return '$' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function laborPct(revenue, payroll) {
-  if (!revenue) return 0;
-  return (payroll / revenue) * 100;
+function suggestNextWeek() {
+  const weeks = sortedWeeks(loadData());
+  const start = weeks.length ? addDays(fromISO(weeks[weeks.length - 1].weekStart), 7) : thursdayOnOrBefore(new Date());
+  $('weekDate').value = toISO(start);
+  updatePreview();
 }
 
 function addWeek() {
-  const dateRange = document.getElementById('dateRange').value.trim();
-  const revenue = parseFloat(document.getElementById('revenue').value);
-  const payroll = parseFloat(document.getElementById('payroll').value);
-  const notes = document.getElementById('notes').value.trim();
-
-  if (!dateRange || isNaN(revenue) || isNaN(payroll)) {
-    alert('Please fill in date range, revenue, and payroll.');
+  const v = $('weekDate').value;
+  const revenue = parseFloat($('revenue').value);
+  const payroll = parseFloat($('payroll').value);
+  const notes = $('notes').value.trim();
+  if (!v || isNaN(revenue) || isNaN(payroll)) { alert('Please pick a pay week and fill in revenue and payroll.'); return; }
+  if (revenue < 0 || payroll < 0) { alert('Revenue and payroll cannot be negative.'); return; }
+  const weekStart = toISO(thursdayOnOrBefore(fromISO(v)));
+  const data = loadData();
+  if (data.some(w => w.weekStart === weekStart)) {
+    alert('You already entered ' + weekLabel(weekStart) + '. Use Edit on that week instead.');
     return;
   }
-
-  const data = loadData();
-  data.push({
-    id: Date.now(),
-    dateRange,
-    revenue,
-    payroll,
-    notes,
-    createdAt: new Date().toISOString()
-  });
+  data.push({ id: Date.now(), weekStart, revenue, payroll, notes, createdAt: new Date().toISOString() });
   saveData(data);
-
-  document.getElementById('dateRange').value = '';
-  document.getElementById('revenue').value = '';
-  document.getElementById('payroll').value = '';
-  document.getElementById('notes').value = '';
-
+  $('revenue').value = ''; $('payroll').value = ''; $('notes').value = '';
+  suggestNextWeek();
   render();
 }
 
 function deleteWeek(id) {
   if (!confirm('Delete this week?')) return;
-  let data = loadData();
-  data = data.filter(w => w.id !== id);
-  saveData(data);
+  saveData(loadData().filter(w => w.id !== id));
+  if (editingId === id) editingId = null;
   render();
+}
+
+function saveEdit(id, fields) {
+  const revenue = parseFloat(fields.revenue.value), payroll = parseFloat(fields.payroll.value);
+  if (!fields.date.value || isNaN(revenue) || isNaN(payroll)) { alert('Please fill in the pay week, revenue, and payroll.'); return; }
+  if (revenue < 0 || payroll < 0) { alert('Revenue and payroll cannot be negative.'); return; }
+  const weekStart = toISO(thursdayOnOrBefore(fromISO(fields.date.value)));
+  const data = loadData();
+  if (data.some(w => w.id !== id && w.weekStart === weekStart)) { alert('You already entered ' + weekLabel(weekStart) + '. Pick a different week.'); return; }
+  const w = data.find(x => x.id === id);
+  Object.assign(w, { weekStart, revenue, payroll, notes: fields.notes.value.trim(), adjusted: false });
+  saveData(data);
+  editingId = null;
+  render();
+}
+
+// ───────── Render ─────────
+function renderNotice(data) {
+  const box = $('notice'); box.replaceChildren();
+  const undated = data.filter(w => !w.weekStart);
+  const adjusted = data.filter(w => w.weekStart && w.adjusted);
+  if (undated.length) {
+    const list = el('div', null);
+    undated.forEach(w => list.appendChild(el('div', null,
+      '“' + (w.legacyRange || 'unknown') + '” — ' + fmtMoney(w.revenue) + ' revenue, ' + fmtMoney(w.payroll) + ' payroll ',
+      el('button', { class: 'small', onclick: () => { editingId = w.id; render(); } }, 'Set the date'))));
+    box.appendChild(el('div', { class: 'notice' },
+      el('h3', null, undated.length + ' old ' + (undated.length === 1 ? 'entry needs' : 'entries need') + ' a date'),
+      'I could not read the dates on these, so they are left out of the averages until you set them.', list));
+  }
+  if (adjusted.length) {
+    const list = el('div', null);
+    adjusted.forEach(w => list.appendChild(el('div', null, '“' + (w.legacyRange || '') + '” became ' + weekLabel(w.weekStart) + ' ',
+      el('button', { class: 'small', onclick: () => { const d = loadData(); d.find(x => x.id === w.id).adjusted = false; saveData(d); render(); } }, 'Looks right'),
+      ' ', el('button', { class: 'small', onclick: () => { editingId = w.id; render(); } }, 'Change'))));
+    box.appendChild(el('div', { class: 'notice' },
+      el('h3', null, 'Check these weeks'),
+      'These old entries did not start on a Thursday, so I moved each to the Thursday–Wednesday week that contains its start date.', list));
+  }
 }
 
 function render() {
   const data = loadData();
-  const target = parseFloat(document.getElementById('targetPct').value) || 35;
-  const tbody = document.getElementById('tableBody');
-  const emptyState = document.getElementById('emptyState');
+  const target = getTarget();
+  const tbody = $('tableBody');
+  tbody.replaceChildren();
+  renderNotice(data);
 
-  tbody.innerHTML = '';
+  const weeks = sortedWeeks(data);
+  $('emptyState').style.display = weeks.length || data.some(w => !w.weekStart) ? 'none' : 'block';
 
-  if (data.length === 0) {
-    emptyState.style.display = 'block';
-  } else {
-    emptyState.style.display = 'none';
-
-    // render newest first
-    const rows = [...data].reverse();
-    rows.forEach((week, idx) => {
-      const pct = laborPct(week.revenue, week.payroll);
-      const pctClass = pct <= target ? 'pct-good' : 'pct-bad';
-
-      // find prior week chronologically for trend
-      const chronoIndex = data.findIndex(w => w.id === week.id);
-      let trendHtml = '';
-      if (chronoIndex > 0) {
-        const prevPct = laborPct(data[chronoIndex - 1].revenue, data[chronoIndex - 1].payroll);
-        const diff = pct - prevPct;
-        if (Math.abs(diff) >= 0.1) {
-          const dir = diff > 0 ? 'up' : 'down';
-          const arrow = diff > 0 ? '▲' : '▼';
-          trendHtml = `<span class="trend ${dir}">${arrow} ${Math.abs(diff).toFixed(1)}pt</span>`;
-        }
+  // newest first
+  for (let i = weeks.length - 1; i >= 0; i--) {
+    const week = weeks[i];
+    if (week.id === editingId) { tbody.appendChild(editRow(week)); continue; }
+    const pct = laborPct(week.revenue, week.payroll);
+    const trend = el('span', { class: 'trend' });
+    if (i > 0) {
+      const prev = weeks[i - 1];
+      const diff = pct - laborPct(prev.revenue, prev.payroll);
+      if (Math.abs(diff) >= 0.1) {
+        trend.className = 'trend ' + (diff > 0 ? 'up' : 'down');
+        trend.textContent = (diff > 0 ? '▲ ' : '▼ ') + Math.abs(diff).toFixed(1) + 'pt';
+        const gapWeeks = Math.round((fromISO(week.weekStart) - fromISO(prev.weekStart)) / (7 * 86400000));
+        if (gapWeeks > 1) trend.textContent += ' (vs ' + gapWeeks + ' wks earlier)';
       }
-
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${escapeHtml(week.dateRange)}</td>
-        <td>${fmtMoney(week.revenue)}</td>
-        <td>${fmtMoney(week.payroll)}</td>
-        <td><span class="pct-badge ${pctClass}">${pct.toFixed(1)}%</span>${trendHtml}</td>
-        <td class="notes-cell">${escapeHtml(week.notes || '')}</td>
-        <td><button class="small danger-text" onclick="deleteWeek(${week.id})">Delete</button></td>
-      `;
-      tbody.appendChild(tr);
-    });
+    }
+    const weekCell = el('td', null, weekLabel(week.weekStart));
+    if (week.adjusted) weekCell.appendChild(el('span', { class: 'chip' }, 'check'));
+    tbody.appendChild(el('tr', null,
+      weekCell,
+      el('td', null, fmtMoney(week.revenue)),
+      el('td', null, fmtMoney(week.payroll)),
+      el('td', null, el('span', { class: 'pct-badge ' + (pct <= target ? 'pct-good' : 'pct-bad') }, pct.toFixed(1) + '%'), trend),
+      el('td', { class: 'notes-cell' }, week.notes || ''),
+      el('td', { class: 'row-actions' },
+        el('button', { class: 'small', onclick: () => { editingId = week.id; render(); } }, 'Edit'), ' ',
+        el('button', { class: 'small danger-text', onclick: () => deleteWeek(week.id) }, 'Delete'))));
   }
+  // an undated entry being edited has no place in the sorted list, so show its edit row on top
+  const undatedEditing = data.find(w => !w.weekStart && w.id === editingId);
+  if (undatedEditing) tbody.insertBefore(editRow(undatedEditing), tbody.firstChild);
 
-  // Stats
-  document.getElementById('statCount').textContent = data.length;
-
-  if (data.length > 0) {
-    const pcts = data.map(w => laborPct(w.revenue, w.payroll));
+  // ── Stats (all in calendar order) ──
+  $('statCount').textContent = weeks.length;
+  if (weeks.length) {
+    const pcts = weeks.map(w => laborPct(w.revenue, w.payroll));
     const avg = pcts.reduce((a, b) => a + b, 0) / pcts.length;
-    setStat('statAvg', 'statAvgSub', avg, target, `${data.length} week${data.length !== 1 ? 's' : ''}`);
-
+    setStat('statAvg', 'statAvgSub', avg, target, weeks.length + ' week' + (weeks.length !== 1 ? 's' : ''));
     const trailing = pcts.slice(-4);
-    const trailingAvg = trailing.reduce((a, b) => a + b, 0) / trailing.length;
-    setStat('statTrailing', 'statTrailingSub', trailingAvg, target, `last ${trailing.length} week${trailing.length !== 1 ? 's' : ''}`);
-
+    setStat('statTrailing', 'statTrailingSub', trailing.reduce((a, b) => a + b, 0) / trailing.length, target, 'last ' + trailing.length + ' week' + (trailing.length !== 1 ? 's' : ''));
     const lastPct = pcts[pcts.length - 1];
-    let lastSub = '';
+    let lastSub = weekLabel(weeks[weeks.length - 1].weekStart);
     if (pcts.length > 1) {
       const diff = lastPct - pcts[pcts.length - 2];
-      const dir = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
-      const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '—';
-      lastSub = `${arrow} ${Math.abs(diff).toFixed(1)}pt vs prior week`;
+      lastSub += ' · ' + (diff > 0 ? '▲ ' : diff < 0 ? '▼ ' : '— ') + Math.abs(diff).toFixed(1) + 'pt vs prior week';
     }
     setStat('statLast', 'statLastSub', lastPct, target, lastSub);
   } else {
-    ['statAvg', 'statTrailing', 'statLast'].forEach(id => {
-      document.getElementById(id).textContent = '—';
-      document.getElementById(id).className = 'value';
-    });
-    document.getElementById('statAvgSub').textContent = '';
-    document.getElementById('statTrailingSub').textContent = '';
-    document.getElementById('statLastSub').textContent = '';
+    ['statAvg', 'statTrailing', 'statLast'].forEach(id => { $(id).textContent = '—'; $(id).className = 'value'; });
+    ['statAvgSub', 'statTrailingSub', 'statLastSub'].forEach(id => { $(id).textContent = ''; });
   }
 }
 
+function editRow(week) {
+  const date = el('input', { type: 'date', value: week.weekStart || '' });
+  const revenue = el('input', { type: 'number', step: '0.01', value: String(week.revenue) });
+  const payroll = el('input', { type: 'number', step: '0.01', value: String(week.payroll) });
+  const notes = el('input', { type: 'text', value: week.notes || '' });
+  const hint = el('div', { class: 'week-preview' });
+  const showHint = () => { hint.textContent = date.value ? fullWeekLabel(toISO(thursdayOnOrBefore(fromISO(date.value)))) : ''; };
+  date.addEventListener('input', showHint); showHint();
+  if (!week.weekStart && week.legacyRange) hint.textContent = 'Old entry: “' + week.legacyRange + '”';
+  const fields = { date, revenue, payroll, notes };
+  return el('tr', { class: 'editing' },
+    el('td', null, date, hint), el('td', null, revenue), el('td', null, payroll), el('td', null, '—'), el('td', null, notes),
+    el('td', { class: 'row-actions' },
+      el('button', { class: 'small primary', onclick: () => saveEdit(week.id, fields) }, 'Save'), ' ',
+      el('button', { class: 'small', onclick: () => { editingId = null; render(); } }, 'Cancel')));
+}
+
 function setStat(valueId, subId, pct, target, subText) {
-  const valEl = document.getElementById(valueId);
+  const valEl = $(valueId);
   valEl.textContent = pct.toFixed(1) + '%';
   valEl.className = 'value ' + (pct <= target ? 'good' : 'bad');
-  document.getElementById(subId).textContent = subText;
+  $(subId).textContent = subText;
 }
 
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
+// ───────── Start ─────────
+try { const t = localStorage.getItem(TARGET_KEY); if (t) $('targetPct').value = t; } catch (e) {}
+$('targetPct').addEventListener('change', () => { try { localStorage.setItem(TARGET_KEY, $('targetPct').value); } catch (e) {} render(); });
+$('weekDate').addEventListener('input', updatePreview);
+$('addBtn').addEventListener('click', addWeek);
+suggestNextWeek();
 render();
 </script>
 
