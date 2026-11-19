@@ -3,524 +3,147 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Residential Quote — MINT Tools</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>MINT Pricer</title>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --green-dark: #163d25;
-  --green-mid: #1e5c38;
-  --green-accent: #27ae60;
-  --green-light: #eef7f2;
-  --green-border: #c8dfd2;
-  --text-primary: #0f1f16;
-  --text-secondary: #4a6355;
-  --text-muted: #8aab96;
-  --bg: #f2f7f4;
-  --card: #ffffff;
-  --shadow: 0 1px 3px rgba(22,61,37,.07), 0 4px 14px rgba(22,61,37,.06);
-  --radius: 12px;
-  --font: 'Plus Jakarta Sans', sans-serif;
-}
-body { font-family: var(--font); background: var(--bg); color: var(--text-primary); min-height: 100vh; }
-
-/* ── Header ── */
-.header {
-  background: var(--green-dark); padding: 2rem 2rem 0;
-  text-align: center; position: relative;
-}
-.header .eyebrow {
-  font-size: .72rem; font-weight: 700; letter-spacing: .14em;
-  text-transform: uppercase; color: rgba(255,255,255,.45); margin-bottom: .5rem;
-}
-.header h1 { font-size: 1.8rem; font-weight: 800; color: white; letter-spacing: -.02em; margin-bottom: .3rem; }
-.header .sub { font-size: .84rem; color: rgba(255,255,255,.5); margin-bottom: 1.75rem; }
-.header-wave { height: 36px; background: var(--bg); border-radius: 36px 36px 0 0; margin: 0 -2rem; }
-.back-link {
-  position: absolute; top: 1.4rem; left: 1.5rem;
-  font-size: .78rem; font-weight: 600; color: rgba(255,255,255,.55);
-  text-decoration: none; display: flex; align-items: center; gap: .3rem;
-  transition: color .15s;
-}
-.back-link:hover { color: white; }
-
-/* ── Layout ── */
-.main { max-width: 560px; margin: 0 auto; padding: 2rem 1.5rem 4rem; display: flex; flex-direction: column; gap: 1rem; }
-
-/* ── Cards ── */
-.card {
-  background: var(--card); border-radius: var(--radius);
-  border: 1.5px solid var(--green-border);
-  box-shadow: var(--shadow);
-  padding: 1.75rem;
-}
-
-.field { margin-bottom: 1.25rem; }
-.field:last-child { margin-bottom: 0; }
-
-label.field-label {
-  display: block;
-  font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--text-muted); margin-bottom: .6rem;
-}
-
-/* ── Segment buttons ── */
-.seg { display: flex; gap: 6px; }
-.seg-btn {
-  flex: 1; padding: 9px 6px; border-radius: 8px; cursor: pointer;
-  font-family: var(--font); font-size: .8rem; font-weight: 600;
-  border: 1.5px solid var(--green-border);
-  background: white; color: var(--text-secondary);
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  transition: all .13s;
-}
-.seg-btn .seg-icon { font-size: 1.1rem; }
-.seg-btn .seg-sub { font-size: .68rem; font-weight: 500; color: var(--text-muted); }
-.seg-btn.active {
-  border-color: var(--green-accent); background: var(--green-light);
-  color: var(--green-dark);
-}
-.seg-btn.active .seg-sub { color: var(--green-mid); }
-.seg-btn:hover:not(.active) { border-color: var(--green-mid); color: var(--green-dark); }
-
-/* ── Input ── */
-.text-input {
-  width: 100%; padding: 10px 14px; border-radius: 8px;
-  border: 1.5px solid var(--green-border);
-  font-family: var(--font); font-size: .9rem; color: var(--text-primary);
-  background: white; transition: border-color .15s;
-}
-.text-input:focus { outline: none; border-color: var(--green-accent); box-shadow: 0 0 0 3px rgba(39,174,96,.12); }
-.text-input::placeholder { color: var(--text-muted); }
-.input-hint { font-size: .72rem; color: var(--text-muted); margin-top: .4rem; line-height: 1.4; }
-
-/* ── Toggle ── */
-.toggle-row {
-  display: flex; align-items: center; gap: 12px; cursor: pointer;
-  padding: 10px 14px; border-radius: 8px; border: 1.5px solid var(--green-border);
-  background: white; transition: all .13s; user-select: none;
-}
-.toggle-row.on { border-color: var(--green-accent); background: var(--green-light); }
-.toggle-track {
-  width: 36px; height: 20px; border-radius: 10px;
-  background: #cce0d4; position: relative; flex-shrink: 0; transition: background .2s;
-}
-.toggle-row.on .toggle-track { background: var(--green-accent); }
-.toggle-thumb {
-  position: absolute; top: 3px; left: 3px;
-  width: 14px; height: 14px; border-radius: 50%;
-  background: white; transition: left .2s;
-}
-.toggle-row.on .toggle-thumb { left: 19px; }
-.toggle-label { font-size: .85rem; font-weight: 500; color: var(--text-secondary); }
-.toggle-row.on .toggle-label { color: var(--green-dark); }
-
-/* ── Calc button ── */
-.calc-btn {
-  width: 100%; padding: 13px; border-radius: 9px; border: none;
-  background: var(--green-dark); color: white;
-  font-family: var(--font); font-size: .82rem; font-weight: 700;
-  letter-spacing: .08em; text-transform: uppercase; cursor: pointer;
-  transition: background .15s;
-}
-.calc-btn:hover { background: var(--green-mid); }
-
-/* ── Error ── */
-.error-box {
-  padding: 10px 14px; border-radius: 8px;
-  background: #fef2f2; border: 1px solid #fecaca;
-  font-size: .82rem; color: #dc2626; margin-top: .75rem; display: none;
-}
-
-/* ── Result card ── */
-.result-card {
-  background: var(--card); border-radius: var(--radius);
-  border: 2px solid var(--green-accent);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-  display: none;
-  animation: slideIn .2s ease;
-}
-@keyframes slideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-
-.result-header { background: var(--green-dark); padding: 1.4rem 1.75rem; }
-.result-service {
-  font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
-  color: rgba(255,255,255,.45); margin-bottom: .5rem;
-}
-.price-grid { display: flex; gap: 10px; flex-wrap: wrap; }
-.price-block {
-  flex: 1; min-width: 110px;
-  background: rgba(255,255,255,.07); border-radius: 8px;
-  padding: 12px 14px; border: 1px solid rgba(255,255,255,.1);
-}
-.price-block .pb-label {
-  font-size: .65rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-  color: rgba(255,255,255,.45); margin-bottom: 4px;
-}
-.price-block .pb-amount {
-  font-size: 1.9rem; font-weight: 800; color: white; line-height: 1; letter-spacing: -.02em;
-}
-.price-block .pb-sub { font-size: .7rem; color: rgba(255,255,255,.4); margin-top: 3px; }
-.price-block.accent { background: var(--green-accent); border-color: transparent; }
-.price-block.accent .pb-label { color: rgba(255,255,255,.6); }
-.price-block.accent .pb-sub { color: rgba(255,255,255,.65); }
-
-.result-details { padding: 1.25rem 1.75rem 0; }
-.detail-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 8px 0; border-bottom: 1px solid var(--green-border); font-size: .84rem;
-}
-.detail-row:last-child { border-bottom: none; }
-.detail-row .dk { color: var(--text-muted); }
-.detail-row .dv { font-weight: 700; color: var(--text-primary); }
-.rate-note {
-  font-size: .72rem; color: var(--text-muted); margin: 1rem 1.75rem;
-  padding: 9px 12px; background: var(--green-light); border-radius: 7px; line-height: 1.55;
-}
-
-/* ── Copy button (result only) ── */
-.copy-btn {
-  width: 100%; padding: 13px; border: none; border-radius: 0;
-  background: var(--green-accent); color: white;
-  font-family: var(--font); font-size: .82rem; font-weight: 700;
-  letter-spacing: .08em; text-transform: uppercase; cursor: pointer;
-  transition: background .15s;
-}
-.copy-btn:hover { background: var(--green-mid); }
-
-/* ── Rate card reference ── */
-.rate-ref {
-  background: var(--card); border-radius: var(--radius);
-  border: 1.5px solid var(--green-border);
-  overflow: hidden;
-}
-.rate-ref summary {
-  padding: 1rem 1.4rem; cursor: pointer; list-style: none;
-  font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--text-muted); display: flex; align-items: center; gap: .4rem; user-select: none;
-}
-.rate-ref summary::-webkit-details-marker { display: none; }
-.rate-ref summary::before { content: '▸'; font-size: .6rem; transition: transform .15s; }
-details[open] .rate-ref summary::before { transform: rotate(90deg); }
-.rate-ref summary:hover { color: var(--green-mid); }
-.rate-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 8px; padding: 0 1.2rem 1.2rem;
-}
-.rate-cell { background: var(--green-light); border-radius: 7px; padding: 9px 11px; }
-.rc-label { font-size: .68rem; color: var(--text-muted); margin-bottom: 3px; }
-.rc-val { font-size: .88rem; font-weight: 700; color: var(--green-dark); }
-.rc-floor { font-size: .68rem; color: var(--green-accent); margin-top: 1px; }
-
-/* ── Footer ── */
-.footer {
-  text-align: center; padding: 1.5rem;
-  font-size: .75rem; color: var(--text-muted);
-  border-top: 1px solid var(--green-border);
-}
-
-/* ── Crew estimate ── */
-.crew { margin: 0 1.75rem 1rem; padding: 12px 14px; background: #f7f9f8; border: 1px dashed var(--green-border); border-radius: 8px; }
-.crew-title { font-size: .66rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
-.crew .detail-row { padding: 6px 0; }
-.chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-weight: 700; font-size: .78rem; }
-.chip.good { background: #dff3e7; color: #17673a; } .chip.warn { background: #fff3cf; color: #8a6a0a; } .chip.bad { background: #fbe4e4; color: #a32d2d; }
-.crew-note { font-size: .68rem; color: var(--text-muted); margin-top: 6px; line-height: 1.45; }
+  :root { --green:#1F9E75; --green-dark:#0F6E56; --green-light:#E1F5EE; --bg:#F7F7F5; --card:#fff; --border:#E2E2DE; --text:#2C2C2A; --muted:#6B6B66; --warn:#8a6a0a; --warn-light:#FFF6DB; --bad:#A32D2D; --bad-light:#FBEAEA; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); padding:24px; max-width:620px; margin:0 auto; }
+  h1 { font-size:22px; font-weight:600; margin-bottom:16px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:20px; margin-bottom:16px; }
+  .toggle { display:flex; gap:8px; margin-bottom:16px; }
+  .toggle button { flex:1; padding:10px; border:1px solid var(--border); background:var(--card); border-radius:8px; font-size:15px; cursor:pointer; color:var(--text); }
+  .toggle button.on { background:var(--green); border-color:var(--green); color:#fff; font-weight:600; }
+  label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+  #sqft { width:100%; padding:14px; font-size:22px; border:1px solid var(--border); border-radius:8px; background:var(--bg); }
+  #sqft:focus { outline:none; border-color:var(--green); background:#fff; }
+  .big { font-size:30px; font-weight:700; }
+  .sub { font-size:13px; color:var(--muted); margin-top:4px; line-height:1.45; }
+  table { width:100%; border-collapse:collapse; margin-top:14px; font-size:15px; }
+  th { text-align:right; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; padding:6px 4px; border-bottom:1px solid var(--border); font-weight:600; }
+  th:first-child, td:first-child { text-align:left; }
+  td { padding:11px 4px; border-bottom:1px solid var(--border); text-align:right; }
+  tr:last-child td { border-bottom:none; }
+  tr.hl td { background:#F1FAF7; font-weight:600; }
+  .chip { display:inline-block; padding:2px 9px; border-radius:999px; font-weight:600; font-size:13px; }
+  .good { background:var(--green-light); color:var(--green-dark); }
+  .warn { background:var(--warn-light); color:var(--warn); }
+  .bad { background:var(--bad-light); color:var(--bad); }
+  .calc { margin-top:14px; padding:12px; background:var(--bg); border-radius:8px; font-size:14px; line-height:1.6; }
+  .foot { font-size:12px; color:var(--muted); line-height:1.5; }
+  .foot input { width:60px; padding:4px 6px; font-size:12px; border:1px solid var(--border); border-radius:6px; }
+  .empty { color:var(--muted); font-size:14px; }
+  .sec { margin-top:18px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  .was { color:var(--muted); font-size:12px; font-weight:400; text-decoration:line-through; margin-right:6px; }
+  .copy { margin-top:14px; width:100%; padding:11px; border:none; border-radius:8px; background:var(--green); color:#fff; font-size:14px; font-weight:600; cursor:pointer; }
+  .copy:hover { background:var(--green-dark); }
+  .pets { display:flex; align-items:center; gap:8px; margin-top:14px; font-size:14px; color:var(--text); }
 </style>
 </head>
 <body>
+<h1>MINT Pricer</h1>
 
-<header class="header">
-  <a class="back-link" href="index.html">← Dashboard</a>
-  <div class="eyebrow">MINT Cleaning Pros · Internal</div>
-  <h1>Residential Quote</h1>
-  <p class="sub">Internal use only — not for client-facing display</p>
-  <div class="header-wave"></div>
-</header>
+<div class="card">
+  <div class="toggle"><button id="t-house" class="on">House</button><button id="t-office">Office</button></div>
+  <label for="sqft">Square feet</label>
+  <input type="number" id="sqft" inputmode="numeric" min="0" step="50" placeholder="e.g. 2300" autofocus>
+  <label class="pets" id="petsRow"><input type="checkbox" id="pets"> Pets in the home (+8%)</label>
+</div>
 
-<main class="main">
+<div class="card" id="out"><div class="empty">Enter the square footage to see the estimate.</div></div>
 
-  <!-- ── Input form (always visible) ── -->
-  <div class="card">
-
-    <div class="field">
-      <label class="field-label">Service type</label>
-      <div class="seg" id="serviceGroup">
-        <button class="seg-btn active" data-val="recurring">
-          <span class="seg-icon">↻</span>
-          <span>Recurring</span>
-          <span class="seg-sub">Weekly / Bi-wkly / Monthly</span>
-        </button>
-        <button class="seg-btn" data-val="deep">
-          <span class="seg-icon">✦</span>
-          <span>Deep Clean</span>
-          <span class="seg-sub">One-time detail</span>
-        </button>
-        <button class="seg-btn" data-val="moveout">
-          <span class="seg-icon">⬡</span>
-          <span>Move-Out</span>
-          <span class="seg-sub">Full empty-home</span>
-        </button>
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="field-label" for="sqftInput">Square footage</label>
-      <input class="text-input" type="number" id="sqftInput" min="1" placeholder="e.g. 1,850" />
-      <div class="input-hint">Enter the actual square footage. Prices use the same size ranges as the website calculator, so this matches what a customer sees online. Time estimates use the exact number.</div>
-    </div>
-
-    <div class="field" id="freqField">
-      <label class="field-label">Frequency</label>
-      <div class="seg" id="freqGroup">
-        <button class="seg-btn" data-val="weekly">
-          <span>Weekly</span><span class="seg-sub">−10%</span>
-        </button>
-        <button class="seg-btn active" data-val="biweekly">
-          <span>Bi-weekly</span><span class="seg-sub">base rate</span>
-        </button>
-        <button class="seg-btn" data-val="monthly">
-          <span>Monthly</span><span class="seg-sub">+15%</span>
-        </button>
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="field-label">Modifiers</label>
-      <div class="toggle-row" id="petsToggle">
-        <div class="toggle-track"><div class="toggle-thumb"></div></div>
-        <span class="toggle-label">Pets in the home (+8%)</span>
-      </div>
-      <div class="toggle-row" id="promoToggle" style="margin-top:8px;">
-        <div class="toggle-track"><div class="toggle-thumb"></div></div>
-        <span class="toggle-label" id="promoLabel">10% off for life on recurring plans (book by Dec 31)</span>
-      </div>
-    </div>
-
-    <div class="error-box" id="errorBox"></div>
-
-    <div class="field" style="margin-top:1rem;">
-      <button class="calc-btn" id="calcBtn">Calculate Quote</button>
-    </div>
-
-  </div>
-
-  <!-- ── Result ── -->
-  <div class="result-card" id="resultCard">
-    <div class="result-header">
-      <div class="result-service" id="resultService"></div>
-      <div class="price-grid" id="priceGrid"></div>
-    </div>
-    <div class="result-details" id="detailRows"></div>
-    <div class="crew" id="crewBox"></div>
-    <div class="rate-note" id="rateNote"></div>
-    <button class="copy-btn" id="copyBtn">Copy Quote</button>
-  </div>
-
-  <!-- ── Rate card reference ── -->
-  <details>
-    <div class="rate-ref">
-      <summary>Rate card reference</summary>
-      <div class="rate-grid">
-        <div class="rate-cell"><div class="rc-label">Bi-weekly &lt; 1,000</div><div class="rc-val">$150</div></div>
-        <div class="rate-cell"><div class="rc-label">Bi-weekly 1,000–1,499</div><div class="rc-val">$160</div></div>
-        <div class="rate-cell"><div class="rc-label">Bi-weekly 1,500–1,999</div><div class="rc-val">$175</div></div>
-        <div class="rate-cell"><div class="rc-label">Bi-weekly 2,000–2,499</div><div class="rc-val">$190</div></div>
-        <div class="rate-cell"><div class="rc-label">Bi-weekly 2,500–2,999</div><div class="rc-val">$205</div></div>
-        <div class="rate-cell"><div class="rc-label">Bi-weekly 3,000+</div><div class="rc-val">$0.07/sqft</div><div class="rc-floor">by size range</div></div>
-        <div class="rate-cell"><div class="rc-label">Initial Clean</div><div class="rc-val">$0.119/sqft</div><div class="rc-floor">$225 floor</div></div>
-        <div class="rate-cell"><div class="rc-label">Deep Clean</div><div class="rc-val">$300 + $0.14/sqft</div><div class="rc-floor">$400 floor</div></div>
-        <div class="rate-cell"><div class="rc-label">Move-Out</div><div class="rc-val">$0.35/sqft</div><div class="rc-floor">$350 floor, ≥ deep + $50</div></div>
-        <div class="rate-cell"><div class="rc-label">Pets</div><div class="rc-val">+8%</div></div>
-        <div class="rate-cell"><div class="rc-label">Weekly / Monthly</div><div class="rc-val">−10% / +15%</div></div>
-      </div>
-    </div>
-  </details>
-
-</main>
-
-<footer class="footer">MINT Cleaning Pros · Internal Tools</footer>
+<div class="foot">
+  Based on your real crew times (Nov 2026): 15 homes, 6 deep cleans and 12 standard offices. Time assumes 2 cleaners. Labor cost per hour: $<input type="number" id="wage" step="0.5" min="1">.
+  Labor % = labor cost &divide; price. Your targets: houses 50%, offices 38%. Estimates are typically off by about 40 minutes on site, since condition matters more than size.
+</div>
 
 <script>
-// ───────── Prices: a copy of the website calculator (shared.mjs). If you change prices there, change them here. ─────────
+// Fitted from your real crew times. hrs = labor hours (all cleaners added up).
+const MODEL = {
+  house:  { a: 3.247, b: 0.000878, sd: 1.34, min: 2.0, target: 50, levels: [['Lowest I would go', 60], ['Target', 50], ['Comfortable', 42]], note: '' },
+  office: { a: 0.179, b: 0.001149, sd: 0.79, min: 1.7, target: 38, levels: [['Tight', 44], ['Target', 38], ['Comfortable', 33]], note: 'Large light-duty buildings (like AMB) take about 25% less time.' },
+};
+// Calculator prices (same as shared.mjs; if you change prices there, change them here). 3,000+ use the per-sq-ft rate.
+const BIWEEKLY = { 800: 150, 1250: 160, 1750: 175, 2250: 190, 2750: 205 };
 const FREQ_ADJ = { weekly: -0.10, biweekly: 0, monthly: 0.15 };
-const BIWEEKLY_BY_MIDPOINT = { 800: 150, 1250: 160, 1750: 175, 2250: 190, 2750: 205 };   // 3,000+ use the per-sq-ft rate
-const RECURRING_RATE = 0.075, RECURRING_RATE_MID = 0.065, RECURRING_RATE_LARGE = 0.07, RECURRING_FLOOR = 125, PET_MULT = 1.08;
-const PROMO = { pct: 0.10, endsAt: '2027-01-01T00:00:00-05:00', endsText: 'December 31' };
-const RANGES = [[0, 1000, 800], [1000, 1500, 1250], [1500, 2000, 1750], [2000, 2500, 2250], [2500, 3000, 2750], [3000, 3500, 3250], [3500, 4000, 3750]];
-function r5(n) { return Math.ceil(n / 5) * 5; }
-function promoLive() { return Date.now() < new Date(PROMO.endsAt).getTime(); }
-// Size used for pricing: the website's range midpoint. 4,000+ is quoted by hand on the website, so it uses the exact size here.
-function priceSize(sqft) { const r = RANGES.find(x => sqft >= x[0] && sqft < x[1]); return r ? r[2] : sqft; }
-function calcRecurring(mid, freq, pets) {
-  const rate = mid >= 2500 ? RECURRING_RATE_LARGE : mid >= 2000 ? RECURRING_RATE_MID : RECURRING_RATE;
-  const tier = BIWEEKLY_BY_MIDPOINT[mid];
-  let b = (tier !== undefined ? tier : mid * rate) * (1 + FREQ_ADJ[freq]);
-  if (pets) b *= PET_MULT;
-  const stepFloor = RECURRING_FLOOR * (1 + FREQ_ADJ[freq]) / (1 + FREQ_ADJ.weekly);
-  return Math.max(r5(b), r5(stepFloor));
+const RANGES = [[0,1000,800],[1000,1500,1250],[1500,2000,1750],[2000,2500,2250],[2500,3000,2750],[3000,3500,3250],[3500,4000,3750]];
+const DEEP_HRS = 12.5;
+const c5 = n => Math.ceil(n / 5) * 5;
+function priceSize(sqft) { const r = RANGES.find(x => sqft >= x[0] && sqft < x[1]); return r ? r[2] : sqft; }   // 4,000+ is quoted by hand on the website, so it uses the exact size
+function calcRecurring(mid, f, pets) {
+  const rate = mid >= 2500 ? 0.07 : mid >= 2000 ? 0.065 : 0.075;
+  let b = (BIWEEKLY[mid] !== undefined ? BIWEEKLY[mid] : mid * rate) * (1 + FREQ_ADJ[f]); if (pets) b *= 1.08;
+  return Math.max(c5(b), c5(125 * (1 + FREQ_ADJ[f]) / 0.9));
 }
-function calcInitial(mid, pets) { let b = mid * 0.085 * 1.4; if (pets) b *= PET_MULT; return Math.max(r5(b), 225); }
-function calcDeep(mid, pets) { let b = 300 + mid * 0.14; if (pets) b *= PET_MULT; return Math.max(r5(b), 400); }
-function calcMoveOut(mid, pets) { let b = mid * 0.35; if (pets) b *= PET_MULT; return Math.max(r5(b), 350, calcDeep(mid, pets) + 50); }
+function calcInitial(mid, pets) { let b = mid * 0.085 * 1.4; if (pets) b *= 1.08; return Math.max(c5(b), 225); }
+function calcDeep(mid, pets) { let b = 300 + mid * 0.14; if (pets) b *= 1.08; return Math.max(c5(b), 400); }
+function calcMoveOut(mid, pets) { let b = mid * 0.35; if (pets) b *= 1.08; return Math.max(c5(b), 350, calcDeep(mid, pets) + 50); }
+let lastText = '';
+const promoLive = () => Date.now() < new Date('2027-01-01T00:00:00-05:00').getTime();
 
-// ───────── Crew time (from your real times, Nov 2026: 15 homes; 6 deep cleans) ─────────
-const WAGE = 20, TARGET = 50;
-const HOUSE = { a: 3.247, b: 0.000878, sd: 1.34, min: 2.0 };
-const DEEP_HRS = 12.5, DEEP_SD = 2;
+const KEY = 'mint_pricer_v1';
+let state = { type: 'house', wage: 20 };
+try { const s = JSON.parse(localStorage.getItem(KEY)); if (s) state = Object.assign(state, s); } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+
+const $ = id => document.getElementById(id);
+const money = n => '$' + Math.round(n).toLocaleString();
 const dur = mins => { const m = Math.round(mins / 5) * 5; return Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm'; };
-const chip = pct => `<span class="chip ${pct <= TARGET + 0.5 ? 'good' : pct <= TARGET + 10 ? 'warn' : 'bad'}">${Math.round(pct)}%</span>`;
+const chipClass = (pct, target) => pct <= target + 0.5 ? 'good' : pct <= target + 10 ? 'warn' : 'bad';
+const pctChip = (pct, target) => '<span class="chip ' + chipClass(pct, target) + '">' + Math.round(pct) + '%</span>';
 
-let service = 'recurring', freq = 'biweekly', pets = false, promo = promoLive(), lastText = '';
+function render() {
+  const sqft = parseFloat($('sqft').value), out = $('out');
+  $('t-house').className = state.type === 'house' ? 'on' : ''; $('t-office').className = state.type === 'office' ? 'on' : '';
+  $('petsRow').style.display = state.type === 'house' ? '' : 'none';
+  if (!sqft || sqft <= 0) { out.innerHTML = '<div class="empty">Enter the square footage to see the estimate.</div>'; return; }
+  const m = MODEL[state.type], wage = state.wage;
+  const hrs = Math.max(m.min, m.a + m.b * sqft), longHrs = hrs + m.sd, shortHrs = Math.max(m.min * 0.8, hrs - m.sd);
+  const cost = hrs * wage, longCost = longHrs * wage;
 
-const sqftInput  = document.getElementById('sqftInput');
-const freqField  = document.getElementById('freqField');
-const petsToggle = document.getElementById('petsToggle');
-const promoToggle = document.getElementById('promoToggle');
-const errorBox   = document.getElementById('errorBox');
-const resultCard = document.getElementById('resultCard');
-const resultSvc  = document.getElementById('resultService');
-const priceGrid  = document.getElementById('priceGrid');
-const detailRows = document.getElementById('detailRows');
-const crewBox    = document.getElementById('crewBox');
-const rateNote   = document.getElementById('rateNote');
-const copyBtn    = document.getElementById('copyBtn');
+  let h = '<div class="big">' + dur(hrs / 2 * 60) + '</div>'
+    + '<div class="sub">estimated time on site with 2 cleaners (likely ' + dur(shortHrs / 2 * 60) + ' to ' + dur(longHrs / 2 * 60) + ')<br>about ' + hrs.toFixed(1) + ' total labor hours, labor cost about ' + money(cost) + '</div>';
 
-promoToggle.classList.toggle('on', promo);
-if (!promoLive()) { promoToggle.style.display = 'none'; promo = false; }
+  h += '<table><thead><tr><th></th><th>Price per visit</th><th>Labor %</th><th>If it runs long</th></tr></thead><tbody>';
+  m.levels.forEach(l => {
+    const price = c5(cost / (l[1] / 100));
+    h += '<tr' + (l[1] === m.target ? ' class="hl"' : '') + '><td>' + l[0] + '</td><td>' + money(price) + '</td><td>' + pctChip(cost / price * 100, m.target) + '</td><td>' + pctChip(longCost / price * 100, m.target) + '</td></tr>';
+  });
+  h += '</tbody></table>';
 
-// Service
-document.getElementById('serviceGroup').addEventListener('click', function(e) {
-  const btn = e.target.closest('.seg-btn');
-  if (!btn) return;
-  service = btn.dataset.val;
-  this.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  freqField.style.display = service === 'recurring' ? '' : 'none';
-  promoToggle.style.display = service === 'recurring' && promoLive() ? '' : 'none';
-});
-
-// Frequency
-document.getElementById('freqGroup').addEventListener('click', function(e) {
-  const btn = e.target.closest('.seg-btn');
-  if (!btn) return;
-  freq = btn.dataset.val;
-  this.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-});
-
-// Pets / promo
-petsToggle.addEventListener('click', function() { pets = !pets; this.classList.toggle('on', pets); });
-promoToggle.addEventListener('click', function() { promo = !promo; this.classList.toggle('on', promo); });
-
-// Calculate
-document.getElementById('calcBtn').addEventListener('click', function() {
-  errorBox.style.display = 'none';
-  const sqft = parseInt(sqftInput.value, 10);
-  if (!sqftInput.value || isNaN(sqft) || sqft < 100) {
-    errorBox.textContent = 'Enter a valid square footage (at least 100 sq ft).';
-    errorBox.style.display = 'block';
-    return;
+  if (state.type === 'house') {
+    const live = promoLive(), mid = priceSize(sqft), pets = $('pets').checked;
+    const rows = [['Weekly', 'weekly'], ['Every 2 weeks', 'biweekly'], ['Monthly', 'monthly']].map(([label, f]) => {
+      const base = calcRecurring(mid, f, pets), price = live ? Math.round(base * 0.9) : base;
+      return { label, base, price, hrs, promo: live };
+    });
+    const first = calcInitial(mid, pets), deep = calcDeep(mid, pets), mo = calcMoveOut(mid, pets);
+    h += '<div class="sec">What the calculator charges' + (mid !== sqft && sqft < 4000 ? ' (priced as ' + mid.toLocaleString() + ' sq ft)' : '') + (live ? ' · with 10% promo' : '') + '</div>';
+    h += '<table><thead><tr><th></th><th>Price</th><th>Labor %</th></tr></thead><tbody>';
+    rows.forEach(r => { h += '<tr><td>' + r.label + '</td><td>' + (r.promo ? '<span class="was">' + money(r.base) + '</span>' : '') + money(r.price) + '</td><td>' + pctChip(cost / r.price * 100, m.target) + '</td></tr>'; });
+    h += '<tr><td>First clean</td><td>' + money(first) + '</td><td class="empty">no timing yet</td></tr>';
+    h += '<tr><td>Deep clean</td><td>' + money(deep) + '</td><td>' + pctChip(DEEP_HRS * wage / deep * 100, m.target) + '</td></tr>';
+    h += '<tr><td>Move-out</td><td>' + money(mo) + '</td><td class="empty">no timing yet</td></tr></tbody></table>';
+    h += '<div class="sub">Deep clean labor % uses your average of ' + DEEP_HRS + ' labor hours (' + dur(DEEP_HRS / 2 * 60) + ' on site with 2 cleaners).</div>';
+    h += '<button class="copy" id="copyBtn">Copy quote</button>';
+    lastText = 'MINT Cleaning Pros \u2014 Residential Quote\nSq ft: ' + Math.round(sqft).toLocaleString() + (pets ? ' \u00B7 Pets' : '') + '\n'
+      + rows.map(r => r.label + ': ' + money(r.price) + (r.promo ? ' (10% off for life, regularly ' + money(r.base) + '; book by December 31)' : '')).join('\n')
+      + '\nFirst clean: ' + money(first) + '\nDeep clean: ' + money(deep) + '\nMove-out: ' + money(mo);
   }
+  if (m.note) h += '<div class="sub" style="margin-top:12px;">' + m.note + '</div>';
+  if (sqft > (state.type === 'house' ? 4500 : 6500)) h += '<div class="sub" style="margin-top:12px;color:#8a6a0a;">This is bigger than anything in your data, so treat it as a rough guess.</div>';
+  if (sqft < 900) h += '<div class="sub" style="margin-top:12px;color:#8a6a0a;">Very little data this small, so treat it as a rough guess.</div>';
+  out.innerHTML = h;
+  const cb = $('copyBtn');
+  if (cb) cb.addEventListener('click', () => { try { navigator.clipboard.writeText(lastText); } catch (e) {} cb.textContent = '\u2713 Copied'; setTimeout(() => { cb.textContent = 'Copy quote'; }, 2000); });
+}
 
-  const fLabel = { weekly: 'Weekly', biweekly: 'Bi-weekly', monthly: 'Monthly' };
-  const fSub   = { weekly: 'per week', biweekly: 'every 2 weeks', monthly: 'per month' };
-  const visitsPerYear = { weekly: 52, biweekly: 26, monthly: 12 };
-  const petNote = pets ? ' · Pets (+8%)' : '';
-  const sqftFmt = sqft.toLocaleString();
-  const mid = priceSize(sqft);
-  const hrs = Math.max(HOUSE.min, HOUSE.a + HOUSE.b * sqft);
-
-  function crew(price, labor, longLabor, note) {
-    const cost = labor * WAGE;
-    return `<div class="crew-title">Crew estimate · internal</div>
-      <div class="detail-row"><span class="dk">Time on site (2 cleaners)</span><span class="dv">${dur(labor / 2 * 60)} <span style="font-weight:500;color:var(--text-muted)">(likely ${dur(Math.max(0.5, labor - longLabor) / 2 * 60)}–${dur((labor + longLabor) / 2 * 60)})</span></span></div>
-      <div class="detail-row"><span class="dk">Labor hours · cost</span><span class="dv">${labor.toFixed(1)} hrs · $${Math.round(cost)}</span></div>
-      <div class="detail-row"><span class="dk">You keep after labor</span><span class="dv">$${Math.round(price - cost)}</span></div>
-      <div class="detail-row"><span class="dk">Labor % (target ${TARGET}%)</span><span class="dv">${chip(cost / price * 100)}</span></div>
-      <div class="crew-note">${note}</div>`;
-  }
-
-  if (service === 'recurring') {
-    const base    = calcRecurring(mid, freq, pets);
-    const rec     = promo ? Math.round(base * (1 - PROMO.pct)) : base;
-    const ini     = calcInitial(mid, pets);
-    const annual  = rec * visitsPerYear[freq];
-    const monthly = Math.round(annual / 12);
-
-    resultSvc.textContent = `Recurring Clean · ${fLabel[freq]}${petNote}${promo ? ' · 10% promo' : ''}`;
-    priceGrid.innerHTML = `
-      <div class="price-block accent">
-        <div class="pb-label">Initial Clean</div>
-        <div class="pb-amount">$${ini}</div>
-        <div class="pb-sub">first visit</div>
-      </div>
-      <div class="price-block accent">
-        <div class="pb-label">Recurring</div>
-        <div class="pb-amount">$${rec}</div>
-        <div class="pb-sub">${fSub[freq]}${promo ? ` · was $${base}` : ''}</div>
-      </div>
-      <div class="price-block">
-        <div class="pb-label">Monthly Est.</div>
-        <div class="pb-amount">$${monthly.toLocaleString()}</div>
-        <div class="pb-sub">avg / mo</div>
-      </div>`;
-    detailRows.innerHTML = `
-      <div class="detail-row"><span class="dk">Square footage</span><span class="dv">${sqftFmt} sq ft${mid !== sqft && sqft < 4000 ? ' (priced as ' + mid.toLocaleString() + ')' : ''}</span></div>
-      <div class="detail-row"><span class="dk">Frequency</span><span class="dv">${fLabel[freq]}</span></div>
-      <div class="detail-row"><span class="dk">Pets</span><span class="dv">${pets ? 'Yes (+8%)' : 'No'}</span></div>
-      <div class="detail-row"><span class="dk">Annual value</span><span class="dv">$${annual.toLocaleString()}</span></div>`;
-    crewBox.style.display = '';
-    crewBox.innerHTML = crew(rec, hrs, HOUSE.sd, 'Estimate from your 15 recent homes. Square footage explains only part of the time, so condition and clutter can move it by about 40 minutes either way. The first (initial) clean has no timing data yet.');
-    rateNote.innerHTML = `Bi-weekly base from the size table${freq !== 'biweekly' ? ` × ${FREQ_ADJ[freq] > 0 ? '+' : ''}${FREQ_ADJ[freq] * 100}% freq` : ''}${pets ? ' × 1.08 pet' : ''}${promo ? ' − 10% promo' : ''} · Initial = 1.4× old bi-weekly rate, $225 floor`;
-    lastText = `MINT Cleaning Pros — Residential Quote
-Service: Recurring Clean (${fLabel[freq]})
-Sq ft: ${sqftFmt}${pets ? ' · Pets' : ''}
-Initial clean: $${ini}
-Recurring: $${rec} ${fSub[freq]}${promo ? ` (10% off for life, regularly $${base}; book by ${PROMO.endsText})` : ''}
-Monthly est.: $${monthly.toLocaleString()}/mo`;
-
-  } else {
-    const price    = service === 'deep' ? calcDeep(mid, pets) : calcMoveOut(mid, pets);
-    const svcLabel = service === 'deep' ? 'Deep Clean' : 'Move-Out Clean';
-    const rate     = service === 'deep' ? '$300 + $0.14/sqft' : '$0.35/sqft';
-    const floor    = service === 'deep' ? '$400' : '$350 (never below deep clean + $50)';
-
-    resultSvc.textContent = `${svcLabel}${petNote}`;
-    priceGrid.innerHTML = `
-      <div class="price-block accent">
-        <div class="pb-label">${svcLabel}</div>
-        <div class="pb-amount">$${price}</div>
-        <div class="pb-sub">one-time</div>
-      </div>`;
-    detailRows.innerHTML = `
-      <div class="detail-row"><span class="dk">Square footage</span><span class="dv">${sqftFmt} sq ft${mid !== sqft && sqft < 4000 ? ' (priced as ' + mid.toLocaleString() + ')' : ''}</span></div>
-      <div class="detail-row"><span class="dk">Pets</span><span class="dv">${pets ? 'Yes (+8%)' : 'No'}</span></div>`;
-    if (service === 'deep') {
-      crewBox.style.display = '';
-      crewBox.innerHTML = crew(price, DEEP_HRS, DEEP_SD, 'Average of your 6 recent deep cleans (12.5 labor hours). Size changed the time very little, and a rough home can take 15 or more hours.');
-    } else {
-      crewBox.style.display = 'none'; crewBox.innerHTML = '';
-    }
-    rateNote.innerHTML = `Rate: ${rate}${pets ? ' × 1.08 pet' : ''} · Floor: ${floor}`;
-    lastText = `MINT Cleaning Pros — Residential Quote
-Service: ${svcLabel}
-Sq ft: ${sqftFmt}${pets ? ' · Pets' : ''}
-Price: $${price} (one-time)`;
-  }
-
-  resultCard.style.display = 'block';
-  resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-});
-
-// Copy
-copyBtn.addEventListener('click', function() {
-  navigator.clipboard.writeText(lastText).catch(() => {});
-  this.textContent = '✓ Copied';
-  setTimeout(() => { this.textContent = 'Copy Quote'; }, 2000);
-});
+$('t-house').onclick = () => { state.type = 'house'; save(); render(); };
+$('t-office').onclick = () => { state.type = 'office'; save(); render(); };
+$('sqft').addEventListener('input', render);
+$('pets').addEventListener('change', render);
+$('wage').value = state.wage;
+$('wage').addEventListener('change', () => { const v = parseFloat($('wage').value); if (v > 0) { state.wage = v; save(); } else $('wage').value = state.wage; render(); });
+render();
 </script>
-
 </body>
 </html>
