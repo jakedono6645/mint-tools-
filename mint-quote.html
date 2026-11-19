@@ -219,6 +219,14 @@ details[open] .rate-ref summary::before { transform: rotate(90deg); }
   font-size: .75rem; color: var(--text-muted);
   border-top: 1px solid var(--green-border);
 }
+
+/* ── Crew estimate ── */
+.crew { margin: 0 1.75rem 1rem; padding: 12px 14px; background: #f7f9f8; border: 1px dashed var(--green-border); border-radius: 8px; }
+.crew-title { font-size: .66rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+.crew .detail-row { padding: 6px 0; }
+.chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-weight: 700; font-size: .78rem; }
+.chip.good { background: #dff3e7; color: #17673a; } .chip.warn { background: #fff3cf; color: #8a6a0a; } .chip.bad { background: #fbe4e4; color: #a32d2d; }
+.crew-note { font-size: .68rem; color: var(--text-muted); margin-top: 6px; line-height: 1.45; }
 </style>
 </head>
 <body>
@@ -260,7 +268,7 @@ details[open] .rate-ref summary::before { transform: rotate(90deg); }
     <div class="field">
       <label class="field-label" for="sqftInput">Square footage</label>
       <input class="text-input" type="number" id="sqftInput" min="1" placeholder="e.g. 1,850" />
-      <div class="input-hint">Enter the actual square footage of the home.</div>
+      <div class="input-hint">Enter the actual square footage. Prices use the same size ranges as the website calculator, so this matches what a customer sees online. Time estimates use the exact number.</div>
     </div>
 
     <div class="field" id="freqField">
@@ -284,6 +292,10 @@ details[open] .rate-ref summary::before { transform: rotate(90deg); }
         <div class="toggle-track"><div class="toggle-thumb"></div></div>
         <span class="toggle-label">Pets in the home (+8%)</span>
       </div>
+      <div class="toggle-row" id="promoToggle" style="margin-top:8px;">
+        <div class="toggle-track"><div class="toggle-thumb"></div></div>
+        <span class="toggle-label" id="promoLabel">10% off for life on recurring plans (book by Dec 31)</span>
+      </div>
     </div>
 
     <div class="error-box" id="errorBox"></div>
@@ -294,13 +306,14 @@ details[open] .rate-ref summary::before { transform: rotate(90deg); }
 
   </div>
 
-  <!-- ── Result (appears below, stays until recalculated) ── -->
+  <!-- ── Result ── -->
   <div class="result-card" id="resultCard">
     <div class="result-header">
       <div class="result-service" id="resultService"></div>
       <div class="price-grid" id="priceGrid"></div>
     </div>
     <div class="result-details" id="detailRows"></div>
+    <div class="crew" id="crewBox"></div>
     <div class="rate-note" id="rateNote"></div>
     <button class="copy-btn" id="copyBtn">Copy Quote</button>
   </div>
@@ -310,13 +323,17 @@ details[open] .rate-ref summary::before { transform: rotate(90deg); }
     <div class="rate-ref">
       <summary>Rate card reference</summary>
       <div class="rate-grid">
-        <div class="rate-cell"><div class="rc-label">Recurring</div><div class="rc-val">$0.085/sqft</div><div class="rc-floor">$150 floor</div></div>
-        <div class="rate-cell"><div class="rc-label">Initial Clean</div><div class="rc-val">1.4× bi-wkly</div><div class="rc-floor">$225 floor</div></div>
-        <div class="rate-cell"><div class="rc-label">Deep Clean</div><div class="rc-val">$0.18/sqft</div><div class="rc-floor">$250 floor</div></div>
-        <div class="rate-cell"><div class="rc-label">Move-Out</div><div class="rc-val">$0.35/sqft</div><div class="rc-floor">$350 floor</div></div>
+        <div class="rate-cell"><div class="rc-label">Bi-weekly &lt; 1,000</div><div class="rc-val">$150</div></div>
+        <div class="rate-cell"><div class="rc-label">Bi-weekly 1,000–1,499</div><div class="rc-val">$160</div></div>
+        <div class="rate-cell"><div class="rc-label">Bi-weekly 1,500–1,999</div><div class="rc-val">$175</div></div>
+        <div class="rate-cell"><div class="rc-label">Bi-weekly 2,000–2,499</div><div class="rc-val">$190</div></div>
+        <div class="rate-cell"><div class="rc-label">Bi-weekly 2,500–2,999</div><div class="rc-val">$205</div></div>
+        <div class="rate-cell"><div class="rc-label">Bi-weekly 3,000+</div><div class="rc-val">$0.07/sqft</div><div class="rc-floor">by size range</div></div>
+        <div class="rate-cell"><div class="rc-label">Initial Clean</div><div class="rc-val">$0.119/sqft</div><div class="rc-floor">$225 floor</div></div>
+        <div class="rate-cell"><div class="rc-label">Deep Clean</div><div class="rc-val">$300 + $0.14/sqft</div><div class="rc-floor">$400 floor</div></div>
+        <div class="rate-cell"><div class="rc-label">Move-Out</div><div class="rc-val">$0.35/sqft</div><div class="rc-floor">$350 floor, ≥ deep + $50</div></div>
         <div class="rate-cell"><div class="rc-label">Pets</div><div class="rc-val">+8%</div></div>
-        <div class="rate-cell"><div class="rc-label">Weekly adj.</div><div class="rc-val">−10%</div></div>
-        <div class="rate-cell"><div class="rc-label">Monthly adj.</div><div class="rc-val">+15%</div></div>
+        <div class="rate-cell"><div class="rc-label">Weekly / Monthly</div><div class="rc-val">−10% / +15%</div></div>
       </div>
     </div>
   </details>
@@ -326,41 +343,52 @@ details[open] .rate-ref summary::before { transform: rotate(90deg); }
 <footer class="footer">MINT Cleaning Pros · Internal Tools</footer>
 
 <script>
+// ───────── Prices: a copy of the website calculator (shared.mjs). If you change prices there, change them here. ─────────
 const FREQ_ADJ = { weekly: -0.10, biweekly: 0, monthly: 0.15 };
+const BIWEEKLY_BY_MIDPOINT = { 800: 150, 1250: 160, 1750: 175, 2250: 190, 2750: 205 };   // 3,000+ use the per-sq-ft rate
+const RECURRING_RATE = 0.075, RECURRING_RATE_MID = 0.065, RECURRING_RATE_LARGE = 0.07, RECURRING_FLOOR = 125, PET_MULT = 1.08;
+const PROMO = { pct: 0.10, endsAt: '2027-01-01T00:00:00-05:00', endsText: 'December 31' };
+const RANGES = [[0, 1000, 800], [1000, 1500, 1250], [1500, 2000, 1750], [2000, 2500, 2250], [2500, 3000, 2750], [3000, 3500, 3250], [3500, 4000, 3750]];
 function r5(n) { return Math.ceil(n / 5) * 5; }
-function calcRecurring(sqft, freq, pets) {
-  let b = sqft * 0.085 * (1 + FREQ_ADJ[freq]);
-  if (pets) b *= 1.08;
-  return Math.max(r5(b), 150);
+function promoLive() { return Date.now() < new Date(PROMO.endsAt).getTime(); }
+// Size used for pricing: the website's range midpoint. 4,000+ is quoted by hand on the website, so it uses the exact size here.
+function priceSize(sqft) { const r = RANGES.find(x => sqft >= x[0] && sqft < x[1]); return r ? r[2] : sqft; }
+function calcRecurring(mid, freq, pets) {
+  const rate = mid >= 2500 ? RECURRING_RATE_LARGE : mid >= 2000 ? RECURRING_RATE_MID : RECURRING_RATE;
+  const tier = BIWEEKLY_BY_MIDPOINT[mid];
+  let b = (tier !== undefined ? tier : mid * rate) * (1 + FREQ_ADJ[freq]);
+  if (pets) b *= PET_MULT;
+  const stepFloor = RECURRING_FLOOR * (1 + FREQ_ADJ[freq]) / (1 + FREQ_ADJ.weekly);
+  return Math.max(r5(b), r5(stepFloor));
 }
-function calcInitial(sqft, pets) {
-  let b = sqft * 0.085 * 1.4;
-  if (pets) b *= 1.08;
-  return Math.max(r5(b), 225);
-}
-function calcDeep(sqft, pets) {
-  let b = sqft * 0.18;
-  if (pets) b *= 1.08;
-  return Math.max(r5(b), 250);
-}
-function calcMoveOut(sqft, pets) {
-  let b = sqft * 0.35;
-  if (pets) b *= 1.08;
-  return Math.max(r5(b), 350);
-}
+function calcInitial(mid, pets) { let b = mid * 0.085 * 1.4; if (pets) b *= PET_MULT; return Math.max(r5(b), 225); }
+function calcDeep(mid, pets) { let b = 300 + mid * 0.14; if (pets) b *= PET_MULT; return Math.max(r5(b), 400); }
+function calcMoveOut(mid, pets) { let b = mid * 0.35; if (pets) b *= PET_MULT; return Math.max(r5(b), 350, calcDeep(mid, pets) + 50); }
 
-let service = 'recurring', freq = 'biweekly', pets = false, lastText = '';
+// ───────── Crew time (from your real times, Nov 2026: 15 homes; 6 deep cleans) ─────────
+const WAGE = 20, TARGET = 50;
+const HOUSE = { a: 3.247, b: 0.000878, sd: 1.34, min: 2.0 };
+const DEEP_HRS = 12.5, DEEP_SD = 2;
+const dur = mins => { const m = Math.round(mins / 5) * 5; return Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm'; };
+const chip = pct => `<span class="chip ${pct <= TARGET + 0.5 ? 'good' : pct <= TARGET + 10 ? 'warn' : 'bad'}">${Math.round(pct)}%</span>`;
+
+let service = 'recurring', freq = 'biweekly', pets = false, promo = promoLive(), lastText = '';
 
 const sqftInput  = document.getElementById('sqftInput');
 const freqField  = document.getElementById('freqField');
 const petsToggle = document.getElementById('petsToggle');
+const promoToggle = document.getElementById('promoToggle');
 const errorBox   = document.getElementById('errorBox');
 const resultCard = document.getElementById('resultCard');
 const resultSvc  = document.getElementById('resultService');
 const priceGrid  = document.getElementById('priceGrid');
 const detailRows = document.getElementById('detailRows');
+const crewBox    = document.getElementById('crewBox');
 const rateNote   = document.getElementById('rateNote');
 const copyBtn    = document.getElementById('copyBtn');
+
+promoToggle.classList.toggle('on', promo);
+if (!promoLive()) { promoToggle.style.display = 'none'; promo = false; }
 
 // Service
 document.getElementById('serviceGroup').addEventListener('click', function(e) {
@@ -370,6 +398,7 @@ document.getElementById('serviceGroup').addEventListener('click', function(e) {
   this.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   freqField.style.display = service === 'recurring' ? '' : 'none';
+  promoToggle.style.display = service === 'recurring' && promoLive() ? '' : 'none';
 });
 
 // Frequency
@@ -381,11 +410,9 @@ document.getElementById('freqGroup').addEventListener('click', function(e) {
   btn.classList.add('active');
 });
 
-// Pets
-petsToggle.addEventListener('click', function() {
-  pets = !pets;
-  this.classList.toggle('on', pets);
-});
+// Pets / promo
+petsToggle.addEventListener('click', function() { pets = !pets; this.classList.toggle('on', pets); });
+promoToggle.addEventListener('click', function() { promo = !promo; this.classList.toggle('on', promo); });
 
 // Calculate
 document.getElementById('calcBtn').addEventListener('click', function() {
@@ -399,16 +426,30 @@ document.getElementById('calcBtn').addEventListener('click', function() {
 
   const fLabel = { weekly: 'Weekly', biweekly: 'Bi-weekly', monthly: 'Monthly' };
   const fSub   = { weekly: 'per week', biweekly: 'every 2 weeks', monthly: 'per month' };
+  const visitsPerYear = { weekly: 52, biweekly: 26, monthly: 12 };
   const petNote = pets ? ' · Pets (+8%)' : '';
   const sqftFmt = sqft.toLocaleString();
+  const mid = priceSize(sqft);
+  const hrs = Math.max(HOUSE.min, HOUSE.a + HOUSE.b * sqft);
+
+  function crew(price, labor, longLabor, note) {
+    const cost = labor * WAGE;
+    return `<div class="crew-title">Crew estimate · internal</div>
+      <div class="detail-row"><span class="dk">Time on site (2 cleaners)</span><span class="dv">${dur(labor / 2 * 60)} <span style="font-weight:500;color:var(--text-muted)">(likely ${dur(Math.max(0.5, labor - longLabor) / 2 * 60)}–${dur((labor + longLabor) / 2 * 60)})</span></span></div>
+      <div class="detail-row"><span class="dk">Labor hours · cost</span><span class="dv">${labor.toFixed(1)} hrs · $${Math.round(cost)}</span></div>
+      <div class="detail-row"><span class="dk">You keep after labor</span><span class="dv">$${Math.round(price - cost)}</span></div>
+      <div class="detail-row"><span class="dk">Labor % (target ${TARGET}%)</span><span class="dv">${chip(cost / price * 100)}</span></div>
+      <div class="crew-note">${note}</div>`;
+  }
 
   if (service === 'recurring') {
-    const rec     = calcRecurring(sqft, freq, pets);
-    const ini     = calcInitial(sqft, pets);
-    const monthly = freq === 'weekly' ? rec * 4 : freq === 'biweekly' ? rec * 2 : rec;
-    const annual  = monthly * 12;
+    const base    = calcRecurring(mid, freq, pets);
+    const rec     = promo ? Math.round(base * (1 - PROMO.pct)) : base;
+    const ini     = calcInitial(mid, pets);
+    const annual  = rec * visitsPerYear[freq];
+    const monthly = Math.round(annual / 12);
 
-    resultSvc.textContent = `Recurring Clean · ${fLabel[freq]}${petNote}`;
+    resultSvc.textContent = `Recurring Clean · ${fLabel[freq]}${petNote}${promo ? ' · 10% promo' : ''}`;
     priceGrid.innerHTML = `
       <div class="price-block accent">
         <div class="pb-label">Initial Clean</div>
@@ -418,7 +459,7 @@ document.getElementById('calcBtn').addEventListener('click', function() {
       <div class="price-block accent">
         <div class="pb-label">Recurring</div>
         <div class="pb-amount">$${rec}</div>
-        <div class="pb-sub">${fSub[freq]}</div>
+        <div class="pb-sub">${fSub[freq]}${promo ? ` · was $${base}` : ''}</div>
       </div>
       <div class="price-block">
         <div class="pb-label">Monthly Est.</div>
@@ -426,19 +467,25 @@ document.getElementById('calcBtn').addEventListener('click', function() {
         <div class="pb-sub">avg / mo</div>
       </div>`;
     detailRows.innerHTML = `
-      <div class="detail-row"><span class="dk">Square footage</span><span class="dv">${sqftFmt} sq ft</span></div>
+      <div class="detail-row"><span class="dk">Square footage</span><span class="dv">${sqftFmt} sq ft${mid !== sqft && sqft < 4000 ? ' (priced as ' + mid.toLocaleString() + ')' : ''}</span></div>
       <div class="detail-row"><span class="dk">Frequency</span><span class="dv">${fLabel[freq]}</span></div>
       <div class="detail-row"><span class="dk">Pets</span><span class="dv">${pets ? 'Yes (+8%)' : 'No'}</span></div>
       <div class="detail-row"><span class="dk">Annual value</span><span class="dv">$${annual.toLocaleString()}</span></div>`;
-    const adj = FREQ_ADJ[freq];
-    rateNote.innerHTML = `Rate: $0.085/sqft${adj ? ` × ${adj > 0 ? '+' : ''}${adj * 100}% freq` : ''}${pets ? ' × 1.08 pet' : ''} · Initial = 1.4× bi-weekly base · Floors: $150 rec / $225 initial`;
-    lastText = `MINT Cleaning Pros — Residential Quote\nService: Recurring Clean (${fLabel[freq]})\nSq ft: ${sqftFmt}${pets ? ' · Pets' : ''}\nInitial clean: $${ini}\nRecurring: $${rec} ${fSub[freq]}\nMonthly est.: $${monthly.toLocaleString()}/mo\nAnnual value: $${annual.toLocaleString()}`;
+    crewBox.style.display = '';
+    crewBox.innerHTML = crew(rec, hrs, HOUSE.sd, 'Estimate from your 15 recent homes. Square footage explains only part of the time, so condition and clutter can move it by about 40 minutes either way. The first (initial) clean has no timing data yet.');
+    rateNote.innerHTML = `Bi-weekly base from the size table${freq !== 'biweekly' ? ` × ${FREQ_ADJ[freq] > 0 ? '+' : ''}${FREQ_ADJ[freq] * 100}% freq` : ''}${pets ? ' × 1.08 pet' : ''}${promo ? ' − 10% promo' : ''} · Initial = 1.4× old bi-weekly rate, $225 floor`;
+    lastText = `MINT Cleaning Pros — Residential Quote
+Service: Recurring Clean (${fLabel[freq]})
+Sq ft: ${sqftFmt}${pets ? ' · Pets' : ''}
+Initial clean: $${ini}
+Recurring: $${rec} ${fSub[freq]}${promo ? ` (10% off for life, regularly $${base}; book by ${PROMO.endsText})` : ''}
+Monthly est.: $${monthly.toLocaleString()}/mo`;
 
   } else {
-    const price    = service === 'deep' ? calcDeep(sqft, pets) : calcMoveOut(sqft, pets);
+    const price    = service === 'deep' ? calcDeep(mid, pets) : calcMoveOut(mid, pets);
     const svcLabel = service === 'deep' ? 'Deep Clean' : 'Move-Out Clean';
-    const rate     = service === 'deep' ? '$0.18/sqft' : '$0.35/sqft';
-    const floor    = service === 'deep' ? '$250' : '$350';
+    const rate     = service === 'deep' ? '$300 + $0.14/sqft' : '$0.35/sqft';
+    const floor    = service === 'deep' ? '$400' : '$350 (never below deep clean + $50)';
 
     resultSvc.textContent = `${svcLabel}${petNote}`;
     priceGrid.innerHTML = `
@@ -448,13 +495,21 @@ document.getElementById('calcBtn').addEventListener('click', function() {
         <div class="pb-sub">one-time</div>
       </div>`;
     detailRows.innerHTML = `
-      <div class="detail-row"><span class="dk">Square footage</span><span class="dv">${sqftFmt} sq ft</span></div>
+      <div class="detail-row"><span class="dk">Square footage</span><span class="dv">${sqftFmt} sq ft${mid !== sqft && sqft < 4000 ? ' (priced as ' + mid.toLocaleString() + ')' : ''}</span></div>
       <div class="detail-row"><span class="dk">Pets</span><span class="dv">${pets ? 'Yes (+8%)' : 'No'}</span></div>`;
+    if (service === 'deep') {
+      crewBox.style.display = '';
+      crewBox.innerHTML = crew(price, DEEP_HRS, DEEP_SD, 'Average of your 6 recent deep cleans (12.5 labor hours). Size changed the time very little, and a rough home can take 15 or more hours.');
+    } else {
+      crewBox.style.display = 'none'; crewBox.innerHTML = '';
+    }
     rateNote.innerHTML = `Rate: ${rate}${pets ? ' × 1.08 pet' : ''} · Floor: ${floor}`;
-    lastText = `MINT Cleaning Pros — Residential Quote\nService: ${svcLabel}\nSq ft: ${sqftFmt}${pets ? ' · Pets' : ''}\nPrice: $${price} (one-time)`;
+    lastText = `MINT Cleaning Pros — Residential Quote
+Service: ${svcLabel}
+Sq ft: ${sqftFmt}${pets ? ' · Pets' : ''}
+Price: $${price} (one-time)`;
   }
 
-  // Show result and scroll to it smoothly
   resultCard.style.display = 'block';
   resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 });
