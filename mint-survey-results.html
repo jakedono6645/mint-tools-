@@ -17,16 +17,19 @@
   .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:16px; }
   .card h2 { margin:0 0 12px; font-size:16px; color:var(--navy); }
   .login { max-width:380px; margin:60px auto; }
-  input[type=text], input[type=email], input[type=password], select, textarea { width:100%; padding:9px 10px; border:1.5px solid var(--line); border-radius:8px; font:inherit; }
+  input[type=text], input[type=email], input[type=password], input[type=date], select, textarea { width:100%; padding:9px 10px; border:1.5px solid var(--line); border-radius:8px; font:inherit; }
   input:focus, select:focus, textarea:focus { outline:none; border-color:var(--mint); }
   label.f { display:block; font-size:13px; color:var(--muted); margin:10px 0 3px; }
   button.btn { background:var(--navy); color:#fff; border:0; border-radius:8px; padding:9px 16px; font-weight:600; cursor:pointer; }
   button.btn.ghost { background:#fff; color:var(--navy); border:1.5px solid var(--line); }
   button.btn.small { padding:4px 9px; font-size:13px; }
   .err { color:var(--red); font-size:14px; min-height:1.2em; }
-  .tabs { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+  .topbar { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:16px; }
+  .tabs { display:flex; gap:6px; flex-wrap:wrap; }
   .tabs button { background:#fff; border:1.5px solid var(--line); border-radius:999px; padding:7px 16px; cursor:pointer; font-weight:600; color:var(--muted); }
   .tabs button.on { background:var(--navy); border-color:var(--navy); color:#fff; }
+  .roundbar { display:flex; gap:8px; align-items:center; font-size:14px; color:var(--muted); }
+  .roundbar select { width:auto; min-width:180px; font-weight:600; color:var(--navy); }
   .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin-bottom:16px; }
   .kpi { background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
   .kpi .v { font-size:30px; font-weight:800; color:var(--navy); line-height:1.1; }
@@ -45,6 +48,8 @@
   .followup { border-left:4px solid var(--red); padding:10px 12px; background:#fff7f6; border-radius:6px; margin-bottom:10px; }
   .followup.done { border-left-color:var(--mint); background:#f5fbf8; opacity:.8; }
   .followup .top { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; font-weight:700; }
+  .due { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:center; padding:10px 12px; border:1px solid var(--line); border-left:4px solid var(--mint); border-radius:8px; margin-bottom:8px; }
+  .due.late { border-left-color:#e0a39e; background:#fffafa; }
   .quote { border-left:3px solid var(--mint); padding:4px 10px; margin:0 0 10px; }
   .quote .who { font-size:12px; color:var(--muted); }
   .muted { color:var(--muted); } .row { display:flex; gap:10px; flex-wrap:wrap; align-items:end; }
@@ -75,17 +80,20 @@
 
   <!-- APP -->
   <div id="app" class="hidden">
-    <div class="tabs">
-      <button data-tab="overview" class="on">Overview</button>
-      <button data-tab="responses">All responses</button>
-      <button data-tab="clients">Clients &amp; links</button>
+    <div class="topbar">
+      <div class="tabs">
+        <button data-tab="overview" class="on">Overview</button>
+        <button data-tab="responses">All responses</button>
+        <button data-tab="clients">Clients &amp; links</button>
+      </div>
+      <div class="roundbar" id="roundbar"><span>Survey:</span><select id="round-sel"></select></div>
     </div>
 
     <!-- OVERVIEW -->
     <section id="tab-overview">
       <div class="kpis" id="kpis"></div>
 
-      <div class="card"><h2>Needs a follow-up call</h2><div id="followups"></div></div>
+      <div class="card"><h2>Needs a follow-up call <span class="muted" style="font-weight:400;font-size:13px;">(all surveys)</span></h2><div id="followups"></div></div>
 
       <div class="card"><h2>Score distribution (overall, 1-10)</h2><div class="dist" id="dist"></div></div>
 
@@ -112,6 +120,12 @@
     <!-- CLIENTS -->
     <section id="tab-clients" class="hidden">
       <div class="card">
+        <h2>30-day check-ins due</h2>
+        <div id="due-list"></div>
+        <p class="muted" style="font-size:12px;margin:8px 0 0;">Shows clients with a start date whose check-in date was within the last 30 days or is coming up in the next 14. Weekly and every-2-weeks clients are checked at 30 days; monthly clients at 40 days, so they've had two cleanings first. Copy the text, send it, then click Mark sent.</p>
+      </div>
+
+      <div class="card">
         <h2>Add a client</h2>
         <div class="row">
           <div><label class="f">Client / business name *</label><input type="text" id="c-name"></div>
@@ -120,6 +134,8 @@
           <div><label class="f">Phone</label><input type="text" id="c-phone"></div>
           <div><label class="f">Type</label><select id="c-type"><option value="commercial">Commercial</option><option value="residential">Residential</option></select></div>
           <div><label class="f">Crew</label><input type="text" id="c-crew" list="crew-list" placeholder="e.g. Team A"></div>
+          <div><label class="f">Start date (new clients)</label><input type="date" id="c-start"></div>
+          <div><label class="f">Check-in after</label><select id="c-checkin"><option value="30">30 days (weekly / biweekly)</option><option value="40">40 days (monthly)</option><option value="60">60 days</option></select></div>
           <div style="flex:0 0 auto;"><button class="btn" id="c-add">Add</button></div>
         </div>
         <datalist id="crew-list"></datalist>
@@ -128,8 +144,8 @@
 
       <div class="card">
         <h2>Bulk import</h2>
-        <p class="muted" style="margin-top:0;">Paste rows copied from a spreadsheet or CSV. First row must be headers: <code>name, contact_name, email, phone, type, crew</code> (only <code>name</code> is required; <code>type</code> is commercial or residential).</p>
-        <textarea id="import-text" rows="5" placeholder="name,contact_name,email,phone,type,crew&#10;AMB Wealth,Abbey,abbey@example.com,2295551234,commercial,Team A"></textarea>
+        <p class="muted" style="margin-top:0;">Paste rows copied from a spreadsheet or CSV. First row must be headers: <code>name, contact_name, email, phone, type, crew, start_date, frequency</code> (only <code>name</code> is required; <code>type</code> is commercial or residential; <code>start_date</code> is optional, like 2026-11-03 or 11/3/2026; <code>frequency</code> is optional, and "monthly" sets a 40-day check-in).</p>
+        <textarea id="import-text" rows="5" placeholder="name,contact_name,email,phone,type,crew,start_date&#10;AMB Wealth,Abbey,abbey@example.com,2295551234,commercial,Team A,"></textarea>
         <p style="margin-bottom:0;"><button class="btn" id="import-btn">Import</button> <span class="err" id="import-err"></span></p>
       </div>
 
@@ -154,11 +170,14 @@
 (function () {
   const cfg = window.MINT_SURVEY || {};
   const LOW = cfg.LOW_SCORE_THRESHOLD || 6;
+  const CURRENT = (cfg.CURRENT_ROUND || 'year-end-2026').toLowerCase();
+  const PULSE = (cfg.PULSE_ROUND || 'new-client').toLowerCase();
   const $ = (id) => document.getElementById(id);
   const sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
 
   let clients = [];      // survey_clients rows
   let responses = [];    // survey_responses rows joined with client info
+  let viewRound = CURRENT;
   const clientById = {};
 
   /* ---------- helpers ---------- */
@@ -168,16 +187,42 @@
   function avg(a) { return a.length ? a.reduce((x, y) => x + y, 0) / a.length : null; }
   function f1(n) { return n == null ? '–' : n.toFixed(1); }
   function pillClass(n) { return n >= 9 ? 'good' : n > LOW ? 'mid' : 'bad'; }
-  function pill(n) { return '<span class="pill ' + pillClass(n) + '">' + n + '</span>'; }
+  function pill(n) { return n == null ? '<span class="muted">–</span>' : '<span class="pill ' + pillClass(n) + '">' + n + '</span>'; }
   function dateStr(iso) { return iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : ''; }
   function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 1800); }
   function firstName(s) { return (s || '').trim().split(/\s+/)[0] || ''; }
+  function isLow(r) { return r.overall <= LOW || (r.recommend != null && r.recommend <= LOW); }
+
+  function roundLabel(r) {
+    if (r === 'all') return 'All surveys';
+    if (r === PULSE) return '30-day check-ins';
+    const m = /^year-end-(\d{4})$/.exec(r);
+    if (m) return 'Year-end ' + m[1];
+    const s = String(r).replace(/-/g, ' ');
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  // dates stored as YYYY-MM-DD; parse as local so they never shift a day
+  function parseDay(s) { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
+  function normalizeDate(s) {
+    s = (s || '').trim(); if (!s) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const m = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/.exec(s);
+    if (!m) return null;
+    const y = m[3].length === 2 ? '20' + m[3] : m[3];
+    return y + '-' + ('0' + m[1]).slice(-2) + '-' + ('0' + m[2]).slice(-2);
+  }
+  function checkinDays(c) { return c.checkin_days || 30; }
+  // a number means that many days; the word "monthly" means 40; anything else is the 30-day default
+  function checkinFromText(s) { s = (s || '').trim(); if (/^\d+$/.test(s)) return parseInt(s, 10); return /month/i.test(s) ? 40 : 30; }
+  function shortDay(d) { return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
 
   function surveyBase() {
     if (cfg.SURVEY_PAGE_URL) return cfg.SURVEY_PAGE_URL;
     return new URL('mint-survey.html', location.href).href;
   }
   function linkFor(c) { return surveyBase() + '?c=' + encodeURIComponent(c.token); }
+  function pulseLinkFor(c) { return surveyBase() + '?c=' + encodeURIComponent(c.token) + '&r=' + encodeURIComponent(PULSE); }
 
   function newToken() {
     const alphabet = 'abcdefghijkmnpqrstuvwxyz23456789';
@@ -259,11 +304,25 @@
     clients.forEach(x => { clientById[x.id] = x; });
     responses = (r.data || []).map(x => {
       const cl = clientById[x.client_id] || {};
-      return Object.assign({}, x, { name: cl.name || '(deleted)', contact_name: cl.contact_name, email: cl.email, phone: cl.phone, client_type: cl.client_type, crew: cl.crew || '' });
+      return Object.assign({}, x, { round: x.round || CURRENT, name: cl.name || '(deleted)', contact_name: cl.contact_name, email: cl.email, phone: cl.phone, client_type: cl.client_type, crew: cl.crew || '' });
     });
     renderAll();
   }
-  function renderAll() { renderOverview(); renderResponses(); renderClients(); fillCrewFilters(); }
+  function renderAll() { fillRoundSelect(); fillCrewFilters(); renderOverview(); renderResponses(); renderClients(); }
+
+  function viewRows() { return viewRound === 'all' ? responses : responses.filter(r => r.round === viewRound); }
+
+  function fillRoundSelect() {
+    const set = new Set([CURRENT, PULSE]);
+    responses.forEach(r => set.add(r.round));
+    const rest = Array.from(set).filter(r => r !== CURRENT && r !== PULSE).sort().reverse();
+    const list = [CURRENT, PULSE].concat(rest).concat(['all']);
+    const sel = $('round-sel');
+    sel.innerHTML = list.map(r => '<option value="' + esc(r) + '">' + esc(roundLabel(r)) + '</option>').join('');
+    if (list.indexOf(viewRound) < 0) viewRound = CURRENT;
+    sel.value = viewRound;
+  }
+  $('round-sel').addEventListener('change', (e) => { viewRound = e.target.value; renderOverview(); renderResponses(); });
 
   function crews() {
     return Array.from(new Set(clients.map(c => (c.crew || '').trim()).filter(Boolean))).sort();
@@ -277,29 +336,46 @@
   }
 
   /* ---------- overview ---------- */
+  function kpi(v, l, s) { return '<div class="kpi"><div class="v">' + esc(v) + '</div><div class="l">' + esc(l) + '</div><div class="s">' + esc(s) + '</div></div>'; }
+
   function renderOverview() {
-    const n = responses.length;
-    const rate = clients.length ? Math.round(n / clients.length * 100) : 0;
-    const overallAvg = avg(responses.map(r => r.overall));
-    const prom = responses.filter(r => r.recommend >= 9).length;
-    const det = responses.filter(r => r.recommend <= 6).length;
-    const nps = n ? Math.round((prom - det) / n * 100) : null;
-    const open = responses.filter(r => !r.followed_up && (r.overall <= LOW || r.recommend <= LOW)).length;
-    const sent = clients.filter(c => c.sent_at).length;
+    const rows = viewRows();
+    const n = rows.length;
+    const isPulseView = viewRound === PULSE;
+    const overallAvg = avg(rows.map(r => r.overall));
+    const open = responses.filter(r => !r.followed_up && isLow(r)).length;
 
-    $('kpis').innerHTML =
-      kpi(n + ' / ' + clients.length, 'Responses', rate + '% response rate · ' + sent + ' marked sent') +
-      kpi(f1(overallAvg), 'Average overall score', 'out of 10') +
-      kpi(nps == null ? '–' : (nps > 0 ? '+' : '') + nps, 'Recommend score (NPS)', prom + ' promoters · ' + det + ' detractors') +
-      kpi(open, 'Open follow-ups', 'score of ' + LOW + ' or lower');
+    let k1;
+    if (viewRound === 'all') {
+      k1 = kpi(n, 'Responses', 'across all surveys');
+    } else if (isPulseView) {
+      const answered = respondedSet();
+      // count as "sent" anyone marked sent OR who already answered (in case you texted without marking it)
+      const sentN = clients.filter(c => c.pulse_sent_at || answered.has(c.id + '|' + PULSE)).length;
+      k1 = kpi(n + ' / ' + sentN, 'Check-ins answered', sentN ? Math.round(n / sentN * 100) + '% of sent' : 'none sent yet');
+    } else {
+      const sentN = clients.filter(c => c.sent_at).length;
+      k1 = kpi(n + ' / ' + clients.length, 'Responses', (clients.length ? Math.round(n / clients.length * 100) : 0) + '% response rate · ' + sentN + ' marked sent');
+    }
+    let html = k1 + kpi(f1(overallAvg), 'Average overall score', 'out of 10');
 
-    // follow-ups
-    const low = responses.filter(r => r.overall <= LOW || r.recommend <= LOW)
+    const withRec = rows.filter(r => r.recommend != null);
+    if (!isPulseView) {
+      const prom = withRec.filter(r => r.recommend >= 9).length;
+      const det = withRec.filter(r => r.recommend <= 6).length;
+      const nps = withRec.length ? Math.round((prom - det) / withRec.length * 100) : null;
+      html += kpi(nps == null ? '–' : (nps > 0 ? '+' : '') + nps, 'Recommend score (NPS)', prom + ' promoters · ' + det + ' detractors');
+    }
+    html += kpi(open, 'Open follow-ups', 'score of ' + LOW + ' or lower, all surveys');
+    $('kpis').innerHTML = html;
+
+    // follow-ups (across every survey so nothing gets missed)
+    const low = responses.filter(isLow)
       .sort((a, b) => (a.followed_up - b.followed_up) || (new Date(b.submitted_at) - new Date(a.submitted_at)));
     $('followups').innerHTML = low.length ? low.map(r => {
       const contact = [esc(r.contact_name || ''), r.phone ? '<a href="tel:' + esc(r.phone) + '">' + esc(r.phone) + '</a>' : '', r.email ? '<a href="mailto:' + esc(r.email) + '">' + esc(r.email) + '</a>' : ''].filter(Boolean);
       return '<div class="followup ' + (r.followed_up ? 'done' : '') + '" data-id="' + r.id + '">' +
-        '<div class="top"><span>' + esc(r.name) + ' · overall ' + pill(r.overall) + ' · recommend ' + pill(r.recommend) + '</span><span class="muted" style="font-weight:400;">' + dateStr(r.submitted_at) + '</span></div>' +
+        '<div class="top"><span>' + esc(r.name) + ' · overall ' + pill(r.overall) + (r.recommend != null ? ' · recommend ' + pill(r.recommend) : '') + ' <span class="muted" style="font-weight:400;">(' + esc(roundLabel(r.round)) + ')</span></span><span class="muted" style="font-weight:400;">' + dateStr(r.submitted_at) + '</span></div>' +
         (contact.length ? '<div class="muted">' + contact.join(' · ') + '</div>' : '') +
         (r.improve ? '<div style="margin:6px 0;">“' + esc(r.improve) + '”</div>' : '') +
         '<div class="row" style="align-items:center;margin-top:6px;">' +
@@ -309,28 +385,27 @@
     }).join('') : '<p class="muted">No low scores. 🎉</p>';
 
     // distribution
-    const counts = Array.from({ length: 10 }, (_, i) => responses.filter(r => r.overall === i + 1).length);
+    const counts = Array.from({ length: 10 }, (_, i) => rows.filter(r => r.overall === i + 1).length);
     const max = Math.max.apply(null, counts.concat([1]));
     $('dist').innerHTML = counts.map((c, i) =>
       '<div class="col">' + c + '<div class="bar ' + (i + 1 <= LOW ? 'low' : '') + '" style="height:' + Math.round(c / max * 90) + '%"></div>' + (i + 1) + '</div>').join('');
 
     // crew table
     const groups = {};
-    responses.forEach(r => { const k = r.crew || '(unassigned)'; (groups[k] = groups[k] || []).push(r); });
+    rows.forEach(r => { const k = r.crew || '(unassigned)'; (groups[k] = groups[k] || []).push(r); });
     const keys = Object.keys(groups).sort();
     $('crew-table').innerHTML = keys.length
       ? '<tr><th>Crew</th><th>Responses</th><th>Avg overall</th><th>Avg recommend</th><th>Shout-outs</th></tr>' +
         keys.map(k => {
           const g = groups[k];
-          return '<tr><td>' + esc(k) + '</td><td>' + g.length + '</td><td>' + f1(avg(g.map(r => r.overall))) + '</td><td>' + f1(avg(g.map(r => r.recommend))) + '</td><td>' + g.filter(r => (r.praise || '').trim()).length + '</td></tr>';
+          return '<tr><td>' + esc(k) + '</td><td>' + g.length + '</td><td>' + f1(avg(g.map(r => r.overall))) + '</td><td>' + f1(avg(g.filter(r => r.recommend != null).map(r => r.recommend))) + '</td><td>' + g.filter(r => (r.praise || '').trim()).length + '</td></tr>';
         }).join('')
       : '<tr><td class="muted">No responses yet.</td></tr>';
 
     // comments
-    $('praise').innerHTML = commentList(responses.filter(r => (r.praise || '').trim()), 'praise');
-    $('improve').innerHTML = commentList(responses.filter(r => (r.improve || '').trim()), 'improve');
+    $('praise').innerHTML = commentList(rows.filter(r => (r.praise || '').trim()), 'praise');
+    $('improve').innerHTML = commentList(rows.filter(r => (r.improve || '').trim()), 'improve');
   }
-  function kpi(v, l, s) { return '<div class="kpi"><div class="v">' + esc(v) + '</div><div class="l">' + esc(l) + '</div><div class="s">' + esc(s) + '</div></div>'; }
   function commentList(rows, field) {
     if (!rows.length) return '<p class="muted">Nothing yet.</p>';
     return rows.map(r => '<div class="quote">“' + esc(r[field]) + '”<div class="who">' + esc(r.name) + (r.crew ? ' · ' + esc(r.crew) : '') + ' · ' + dateStr(r.submitted_at) + '</div></div>').join('');
@@ -354,20 +429,20 @@
   /* ---------- responses tab ---------- */
   function filteredResponses() {
     const q = $('f-search').value.trim().toLowerCase(), crew = $('f-crew').value, type = $('f-type').value;
-    return responses.filter(r =>
+    return viewRows().filter(r =>
       (!crew || r.crew === crew) && (!type || r.client_type === type) &&
       (!q || [r.name, r.contact_name, r.improve, r.praise].join(' ').toLowerCase().indexOf(q) >= 0));
   }
   function renderResponses() {
     const rows = filteredResponses();
-    $('resp-table').innerHTML = '<tr><th>Date</th><th>Client</th><th>Crew</th><th>Overall</th><th>Recommend</th><th>Could do better</th><th>Does well</th><th>Followed up</th></tr>' +
-      (rows.length ? rows.map(r => '<tr><td>' + dateStr(r.submitted_at) + '</td><td>' + esc(r.name) + '<div class="muted">' + esc(r.client_type || '') + '</div></td><td>' + esc(r.crew) + '</td><td>' + pill(r.overall) + '</td><td>' + pill(r.recommend) + '</td><td>' + esc(r.improve) + '</td><td>' + esc(r.praise) + '</td><td>' + (r.followed_up ? '✓' : (r.overall <= LOW || r.recommend <= LOW ? '<span style="color:var(--red)">open</span>' : '')) + '</td></tr>').join('') : '<tr><td colspan="8" class="muted">No responses match.</td></tr>');
+    $('resp-table').innerHTML = '<tr><th>Date</th><th>Survey</th><th>Client</th><th>Crew</th><th>Overall</th><th>Recommend</th><th>Could do better</th><th>Does well</th><th>Followed up</th></tr>' +
+      (rows.length ? rows.map(r => '<tr><td>' + dateStr(r.submitted_at) + '</td><td>' + esc(roundLabel(r.round)) + '</td><td>' + esc(r.name) + '<div class="muted">' + esc(r.client_type || '') + '</div></td><td>' + esc(r.crew) + '</td><td>' + pill(r.overall) + '</td><td>' + pill(r.recommend) + '</td><td>' + esc(r.improve) + '</td><td>' + esc(r.praise) + '</td><td>' + (r.followed_up ? '✓' : (isLow(r) ? '<span style="color:var(--red)">open</span>' : '')) + '</td></tr>').join('') : '<tr><td colspan="9" class="muted">No responses match.</td></tr>');
   }
   ['f-search', 'f-crew', 'f-type'].forEach(id => $(id).addEventListener('input', renderResponses));
   $('export-responses').addEventListener('click', () => {
     const rows = filteredResponses();
-    downloadCSV('mint-survey-responses.csv', [['date', 'client', 'type', 'crew', 'contact', 'email', 'phone', 'overall', 'recommend', 'could_do_better', 'does_well', 'followed_up', 'followup_note']]
-      .concat(rows.map(r => [r.submitted_at, r.name, r.client_type, r.crew, r.contact_name, r.email, r.phone, r.overall, r.recommend, r.improve, r.praise, r.followed_up, r.followup_note])));
+    downloadCSV('mint-survey-responses.csv', [['date', 'survey', 'client', 'type', 'crew', 'contact', 'email', 'phone', 'overall', 'recommend', 'could_do_better', 'does_well', 'followed_up', 'followup_note']]
+      .concat(rows.map(r => [r.submitted_at, r.round, r.name, r.client_type, r.crew, r.contact_name, r.email, r.phone, r.overall, r.recommend, r.improve, r.praise, r.followed_up, r.followup_note])));
   });
 
   /* ---------- clients tab ---------- */
@@ -376,26 +451,62 @@
     const place = c.client_type === 'residential' ? 'your home' : 'your space';
     return 'Hi ' + who + ', it\'s Jake at MINT Cleaning Pros. As we wrap up the year, I\'d love 60 seconds of your honest feedback on how we\'re doing with ' + place + ': ' + linkFor(c) + ' Thank you for trusting us!';
   }
+  function pulseTextFor(c) {
+    const who = firstName(c.contact_name) || firstName(c.name);
+    return 'Hi ' + who + ', it\'s Jake at MINT Cleaning Pros. You\'ve been with us about a month now, and I\'d love to hear how it\'s going so far. It takes 60 seconds: ' + pulseLinkFor(c) + ' Thank you for choosing us!';
+  }
+  function respondedSet() { return new Set(responses.map(r => r.client_id + '|' + r.round)); }
+
+  function renderDue() {
+    const done = respondedSet();
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const items = clients
+      .filter(c => c.start_date && !c.pulse_sent_at && !done.has(c.id + '|' + PULSE))
+      .map(c => {
+        const s = parseDay(c.start_date); if (!s) return null;
+        const due = new Date(s); due.setDate(due.getDate() + checkinDays(c));
+        return { c: c, due: due, days: Math.round((due - today) / 86400000) };
+      })
+      .filter(x => x && x.days <= 14 && x.days >= -30)
+      .sort((a, b) => a.days - b.days);
+    $('due-list').innerHTML = items.length ? items.map(x => {
+      const label = x.days < 0 ? 'overdue by ' + (-x.days) + ' day' + (x.days === -1 ? '' : 's') : x.days === 0 ? 'due today' : 'due in ' + x.days + ' day' + (x.days === 1 ? '' : 's') + ' (' + shortDay(x.due) + ')';
+      return '<div class="due ' + (x.days < 0 ? 'late' : '') + '" data-id="' + x.c.id + '">' +
+        '<div><strong>' + esc(x.c.name) + '</strong> <span class="muted">· started ' + esc(shortDay(parseDay(x.c.start_date))) + ' · ' + label + '</span></div>' +
+        '<div style="white-space:nowrap;"><button class="btn small" data-act="due-text">Copy text</button> <button class="btn ghost small" data-act="due-link">Copy link</button> <button class="btn ghost small" data-act="due-sent">Mark sent</button></div></div>';
+    }).join('') : '<p class="muted" style="margin:0;">Nothing due. Give new clients a start date and they\'ll show up here 30 days later.</p>';
+  }
+
   function renderClients() {
-    const responded = new Set(responses.map(r => r.client_id));
-    $('client-table').innerHTML = '<tr><th>Client</th><th>Type / crew</th><th>Contact</th><th>Status</th><th>Link</th><th></th></tr>' +
+    renderDue();
+    const done = respondedSet();
+    $('client-table').innerHTML = '<tr><th>Client</th><th>Type / crew</th><th>Contact</th><th>Start date</th><th>Status</th><th>Link</th><th></th></tr>' +
       (clients.length ? clients.map(c => {
-        const status = responded.has(c.id) ? '<span class="pill good">responded</span>' : (c.sent_at ? '<span class="pill mid">sent ' + dateStr(c.sent_at) + '</span>' : '<span class="pill" style="background:#eef1f4;color:var(--muted)">not sent</span>');
+        const mainStatus = done.has(c.id + '|' + CURRENT) ? '<span class="pill good">responded</span>' : (c.sent_at ? '<span class="pill mid">sent ' + dateStr(c.sent_at) + '</span>' : '<span class="pill" style="background:#eef1f4;color:var(--muted)">not sent</span>');
+        let pulseStatus = '';
+        if (done.has(c.id + '|' + PULSE)) pulseStatus = '<div style="margin-top:3px;"><span class="muted">30-day:</span> <span class="pill good">responded</span></div>';
+        else if (c.pulse_sent_at) pulseStatus = '<div style="margin-top:3px;"><span class="muted">30-day:</span> <span class="pill mid">sent ' + dateStr(c.pulse_sent_at) + '</span></div>';
         return '<tr data-id="' + c.id + '"><td>' + esc(c.name) + '</td><td>' + esc(c.client_type) + (c.crew ? '<div class="muted">' + esc(c.crew) + '</div>' : '') + '</td>' +
           '<td>' + esc(c.contact_name || '') + '<div class="muted">' + esc(c.email || '') + (c.email && c.phone ? ' · ' : '') + esc(c.phone || '') + '</div></td>' +
-          '<td>' + status + '</td><td class="link-cell" title="' + esc(linkFor(c)) + '">' + esc(linkFor(c)) + '</td>' +
-          '<td style="white-space:nowrap;"><button class="btn ghost small" data-act="copylink">Copy link</button> <button class="btn ghost small" data-act="copytext">Copy text</button> <button class="btn ghost small" data-act="sent">' + (c.sent_at ? 'Unmark sent' : 'Mark sent') + '</button> <button class="btn ghost small" data-act="del">✕</button></td></tr>';
-      }).join('') : '<tr><td colspan="6" class="muted">No clients yet. Add one above or paste a list.</td></tr>');
+          '<td><input type="date" data-act="startdate" value="' + esc(c.start_date || '') + '" style="min-width:130px;">' +
+          '<select data-act="checkin" style="margin-top:4px;font-size:12px;" title="How long after the start date to send the check-in">' + [30, 40, 60].map(n => '<option value="' + n + '"' + (checkinDays(c) === n ? ' selected' : '') + '>check-in at ' + n + ' days</option>').join('') + '</select></td>' +
+          '<td>' + mainStatus + pulseStatus + '</td><td class="link-cell" title="' + esc(linkFor(c)) + '">' + esc(linkFor(c)) + '</td>' +
+          '<td style="white-space:nowrap;"><button class="btn ghost small" data-act="copylink">Copy link</button> <button class="btn ghost small" data-act="copytext">Copy text</button> ' +
+          (c.start_date ? '<button class="btn ghost small" data-act="copypulse">30-day text</button> ' : '') +
+          '<button class="btn ghost small" data-act="sent">' + (c.sent_at ? 'Unmark sent' : 'Mark sent') + '</button> <button class="btn ghost small" data-act="del">✕</button></td></tr>';
+      }).join('') : '<tr><td colspan="7" class="muted">No clients yet. Add one above or paste a list.</td></tr>');
   }
   async function copy(text, msg) {
     try { await navigator.clipboard.writeText(text); toast(msg); } catch (e) { window.prompt('Copy this:', text); }
   }
+
   $('client-table').addEventListener('click', async (e) => {
     const btn = e.target.closest('button[data-act]'); if (!btn) return;
     const id = btn.closest('tr').dataset.id; const c = clientById[id]; if (!c) return;
     const act = btn.dataset.act;
     if (act === 'copylink') copy(linkFor(c), 'Link copied');
     if (act === 'copytext') copy(textFor(c), 'Text message copied');
+    if (act === 'copypulse') copy(pulseTextFor(c), '30-day text copied');
     if (act === 'sent') {
       const v = c.sent_at ? null : new Date().toISOString();
       const { error } = await sb.from('survey_clients').update({ sent_at: v }).eq('id', id);
@@ -403,10 +514,32 @@
       c.sent_at = v; renderClients(); renderOverview();
     }
     if (act === 'del') {
-      if (!confirm('Delete ' + c.name + ' and any survey response from them?')) return;
+      if (!confirm('Delete ' + c.name + ' and any survey responses from them?')) return;
       const { error } = await sb.from('survey_clients').delete().eq('id', id);
       if (error) return toast('Delete failed');
       await loadAll();
+    }
+  });
+  $('client-table').addEventListener('change', async (e) => {
+    const act = e.target.dataset.act;
+    if (act !== 'startdate' && act !== 'checkin') return;
+    const id = e.target.closest('tr').dataset.id; const c = clientById[id]; if (!c) return;
+    const patch = act === 'startdate' ? { start_date: e.target.value || null } : { checkin_days: parseInt(e.target.value, 10) || 30 };
+    const { error } = await sb.from('survey_clients').update(patch).eq('id', id);
+    if (error) return toast('Save failed');
+    Object.assign(c, patch); renderClients(); toast('Saved');
+  });
+
+  $('due-list').addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-act]'); if (!btn) return;
+    const id = btn.closest('.due').dataset.id; const c = clientById[id]; if (!c) return;
+    if (btn.dataset.act === 'due-text') copy(pulseTextFor(c), '30-day text copied');
+    if (btn.dataset.act === 'due-link') copy(pulseLinkFor(c), 'Link copied');
+    if (btn.dataset.act === 'due-sent') {
+      const v = new Date().toISOString();
+      const { error } = await sb.from('survey_clients').update({ pulse_sent_at: v }).eq('id', id);
+      if (error) return toast('Save failed');
+      c.pulse_sent_at = v; renderClients(); renderOverview(); toast('Marked sent');
     }
   });
 
@@ -414,10 +547,11 @@
     const err = $('c-err'); err.textContent = '';
     const name = $('c-name').value.trim();
     if (!name) { err.textContent = 'Name is required.'; return; }
-    const row = { token: newToken(), name: name, contact_name: $('c-contact').value.trim() || null, email: $('c-email').value.trim() || null, phone: $('c-phone').value.trim() || null, client_type: $('c-type').value, crew: $('c-crew').value.trim() || null };
+    const row = { token: newToken(), name: name, contact_name: $('c-contact').value.trim() || null, email: $('c-email').value.trim() || null, phone: $('c-phone').value.trim() || null, client_type: $('c-type').value, crew: $('c-crew').value.trim() || null, start_date: $('c-start').value || null, checkin_days: parseInt($('c-checkin').value, 10) || 30 };
     const { error } = await sb.from('survey_clients').insert(row);
     if (error) { err.textContent = error.message; return; }
-    ['c-name', 'c-contact', 'c-email', 'c-phone'].forEach(id => { $(id).value = ''; });
+    ['c-name', 'c-contact', 'c-email', 'c-phone', 'c-start'].forEach(id => { $(id).value = ''; });
+    $('c-checkin').value = '30';
     toast('Client added'); await loadAll();
   });
 
@@ -427,12 +561,12 @@
     if (rows.length < 2) { err.textContent = 'Need a header row plus at least one client.'; return; }
     const head = rows[0].map(h => h.trim().toLowerCase().replace(/[\s-]+/g, '_'));
     const idx = (...names) => { for (const n of names) { const i = head.indexOf(n); if (i >= 0) return i; } return -1; };
-    const iName = idx('name', 'client', 'business', 'company'), iContact = idx('contact_name', 'contact'), iEmail = idx('email'), iPhone = idx('phone', 'mobile'), iType = idx('type', 'client_type'), iCrew = idx('crew', 'team');
+    const iName = idx('name', 'client', 'business', 'company'), iContact = idx('contact_name', 'contact'), iEmail = idx('email'), iPhone = idx('phone', 'mobile'), iType = idx('type', 'client_type'), iCrew = idx('crew', 'team'), iStart = idx('start_date', 'start', 'since'), iFreq = idx('checkin_days', 'frequency', 'schedule');
     if (iName < 0) { err.textContent = 'Could not find a "name" column.'; return; }
     const get = (r, i) => (i >= 0 && r[i] != null ? r[i].trim() : '');
     const out = rows.slice(1).filter(r => get(r, iName)).map(r => ({
       token: newToken(), name: get(r, iName), contact_name: get(r, iContact) || null, email: get(r, iEmail) || null, phone: get(r, iPhone) || null,
-      client_type: /^res/i.test(get(r, iType)) ? 'residential' : 'commercial', crew: get(r, iCrew) || null
+      client_type: /^res/i.test(get(r, iType)) ? 'residential' : 'commercial', crew: get(r, iCrew) || null, start_date: normalizeDate(get(r, iStart)), checkin_days: checkinFromText(get(r, iFreq))
     }));
     if (!out.length) { err.textContent = 'No valid rows found.'; return; }
     const { error } = await sb.from('survey_clients').insert(out);
@@ -441,8 +575,8 @@
   });
 
   $('export-links').addEventListener('click', () => {
-    downloadCSV('mint-survey-links.csv', [['name', 'first_name', 'contact_name', 'email', 'phone', 'type', 'crew', 'survey_link']]
-      .concat(clients.map(c => [c.name, firstName(c.contact_name) || firstName(c.name), c.contact_name, c.email, c.phone, c.client_type, c.crew, linkFor(c)])));
+    downloadCSV('mint-survey-links.csv', [['name', 'first_name', 'contact_name', 'email', 'phone', 'type', 'crew', 'start_date', 'checkin_days', 'survey_link', 'thirty_day_link']]
+      .concat(clients.map(c => [c.name, firstName(c.contact_name) || firstName(c.name), c.contact_name, c.email, c.phone, c.client_type, c.crew, c.start_date, checkinDays(c), linkFor(c), pulseLinkFor(c)])));
   });
   $('mark-all-sent').addEventListener('click', async () => {
     const unsent = clients.filter(c => !c.sent_at); if (!unsent.length) return toast('Everyone is already marked sent');
@@ -458,6 +592,7 @@
     const b = e.target.closest('button[data-tab]'); if (!b) return;
     document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
     ['overview', 'responses', 'clients'].forEach(t => $('tab-' + t).classList.toggle('hidden', t !== b.dataset.tab));
+    $('roundbar').classList.toggle('hidden', b.dataset.tab === 'clients');
   });
 
   init();
