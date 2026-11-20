@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>MINT Cleaning Pros | Year-End Feedback</title>
+<title>MINT Cleaning Pros | Feedback</title>
 <style>
   :root { --navy:#1f2d4a; --mint:#6fb59a; --mint-dark:#4f9a7e; --bg:#f4f7f6; --line:#d9e2de; --text:#24303f; --muted:#6b7785; }
   * { box-sizing:border-box; }
@@ -63,29 +63,29 @@
     <div id="preview-note" class="notice hidden">Preview mode: answers are not saved.</div>
     <div id="again-note" class="notice hidden">You've already sent feedback. Submitting again will update your answers.</div>
     <h1 id="greeting">Hi there</h1>
-    <p class="lead">It's been a great year, and we'd love your honest take on how we're doing so we can keep getting better. It takes about a minute.</p>
+    <p class="lead" id="lead"></p>
 
     <form id="survey-form" novalidate>
       <fieldset>
-        <legend>1. Overall, how happy are you with MINT?</legend>
+        <legend id="lg-overall"></legend>
         <div class="scale" id="scale-overall"></div>
         <div class="ends"><span>1 = Not happy</span><span>10 = Delighted</span></div>
       </fieldset>
 
-      <fieldset>
-        <legend>2. How likely are you to recommend MINT to a friend or colleague?</legend>
+      <fieldset id="fs-recommend">
+        <legend id="lg-recommend"></legend>
         <div class="scale" id="scale-recommend"></div>
         <div class="ends"><span>0 = Not likely</span><span>10 = Definitely</span></div>
       </fieldset>
 
       <fieldset>
-        <legend>3. What's one thing we could do better?</legend>
-        <textarea id="improve" maxlength="2000" placeholder="Big or small, we want to hear it."></textarea>
+        <legend id="lg-improve"></legend>
+        <textarea id="improve" maxlength="2000"></textarea>
       </fieldset>
 
       <fieldset>
-        <legend>4. Anything our team does especially well?</legend>
-        <textarea id="praise" maxlength="2000" placeholder="Feel free to name anyone who goes above and beyond."></textarea>
+        <legend id="lg-praise"></legend>
+        <textarea id="praise" maxlength="2000"></textarea>
         <div class="hint">Optional. We love passing kind words along to the team.</div>
       </fieldset>
 
@@ -116,10 +116,34 @@
   const params = new URLSearchParams(location.search);
   const token = (params.get('c') || '').trim();
   const preview = params.has('preview');
+  const PULSE_ROUND = (cfg.PULSE_ROUND || 'new-client').toLowerCase();
+  // Which survey this link is for. Links without &r= belong to the current main survey round.
+  const round = ((params.get('r') || cfg.CURRENT_ROUND || 'year-end-2026').trim() || 'year-end-2026').toLowerCase();
+  const isPulse = round === PULSE_ROUND;
   const $ = (id) => document.getElementById(id);
 
   let sb = null;
   let clientName = '';
+
+  /* ---------- wording: full survey vs 30-day check-in ---------- */
+  if (isPulse) {
+    document.title = 'MINT Cleaning Pros | How\'s your first month?';
+    $('lead').textContent = "You've been with us about a month now, and we want to make sure we're getting it right from the start. It takes about a minute.";
+    $('lg-overall').textContent = "1. How is your first month with MINT going?";
+    $('lg-improve').textContent = "2. Is there anything we could do better, or do differently?";
+    $('lg-praise').textContent = "3. Has anyone on our team stood out so far?";
+    $('fs-recommend').classList.add('hidden');
+    $('improve').placeholder = "Big or small, we want to hear it.";
+    $('praise').placeholder = "Feel free to name anyone who has gone above and beyond.";
+  } else {
+    $('lead').textContent = "It's been a great year, and we'd love your honest take on how we're doing so we can keep getting better. It takes about a minute.";
+    $('lg-overall').textContent = "1. Overall, how happy are you with MINT?";
+    $('lg-recommend').textContent = "2. How likely are you to recommend MINT to a friend or colleague?";
+    $('lg-improve').textContent = "3. What's one thing we could do better?";
+    $('lg-praise').textContent = "4. Anything our team does especially well?";
+    $('improve').placeholder = "Big or small, we want to hear it.";
+    $('praise').placeholder = "Feel free to name anyone who goes above and beyond.";
+  }
 
   function show(view) {
     ['loading', 'invalid', 'form', 'thanks'].forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
@@ -156,7 +180,7 @@
     if (!token || !cfg.SUPABASE_URL || cfg.SUPABASE_URL.indexOf('YOUR_') === 0) { show('invalid'); return; }
     try {
       sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
-      const { data, error } = await sb.rpc('get_survey_client', { p_token: token });
+      const { data, error } = await sb.rpc('get_survey_client', { p_token: token, p_round: round });
       if (error || !data || !data.length) { show('invalid'); return; }
       const c = data[0];
       clientName = c.name || '';
@@ -182,8 +206,9 @@
           template_params: {
             to_email: cfg.ALERT_EMAIL || '',
             client: clientName,
+            round: isPulse ? '30-day check-in' : round,
             overall: overall,
-            recommend: recommend,
+            recommend: recommend == null ? 'n/a' : recommend,
             improve: improve || '(none)',
             praise: praise || '(none)'
           }
@@ -206,9 +231,9 @@
     const err = $('form-error');
     err.textContent = '';
     const overall = picked('overall');
-    const recommend = picked('recommend');
-    if (overall === null || recommend === null) {
-      err.textContent = 'Please choose a score for questions 1 and 2.';
+    const recommend = isPulse ? null : picked('recommend');
+    if (overall === null || (!isPulse && recommend === null)) {
+      err.textContent = isPulse ? 'Please choose a score for question 1.' : 'Please choose a score for questions 1 and 2.';
       return;
     }
     const improve = $('improve').value.trim();
@@ -221,11 +246,11 @@
 
     try {
       const { data, error } = await sb.rpc('submit_survey', {
-        p_token: token, p_overall: overall, p_recommend: recommend, p_improve: improve, p_praise: praise
+        p_token: token, p_round: round, p_overall: overall, p_recommend: recommend, p_improve: improve, p_praise: praise
       });
       if (error || data !== true) throw new Error('save failed');
       const low = cfg.LOW_SCORE_THRESHOLD || 6;
-      if (overall <= low || recommend <= low) alertLowScore(overall, recommend, improve, praise);
+      if (overall <= low || (recommend !== null && recommend <= low)) alertLowScore(overall, recommend, improve, praise);
       showThanks();
     } catch (e) {
       err.textContent = "Sorry, something went wrong and your answers weren't saved. Please try again in a moment.";
