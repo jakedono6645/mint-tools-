@@ -13,6 +13,14 @@ window.MINT_SURVEY = {
   // Where the client-facing page lives. Leave blank to use mint-survey.html next to the results page.
   SURVEY_PAGE_URL: "",
 
+  // Which main survey is running now. Change this when you start the next round
+  // (e.g. "mid-2027" in June) and every client's existing link switches to it automatically.
+  // Past rounds stay saved separately and can be viewed from the results page.
+  CURRENT_ROUND: "year-end-2026",
+
+  // The 30-day new-client check-in. Leave as is.
+  PULSE_ROUND: "new-client",
+
   // Scores at or below this are flagged "needs a follow-up call".
   LOW_SCORE_THRESHOLD: 6,
 
