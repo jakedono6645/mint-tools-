@@ -717,8 +717,14 @@ function isApprovedOpen(l) { return l.status === 'approved' && l.type !== 'comme
 function needsScheduling(l) { return isApprovedOpen(l) && !!l.needs_by; }              // gave a timeframe, not scheduled yet
 function noTimeframe(l) { return isApprovedOpen(l) && !l.needs_by && !!l.approved_at; } // approved, never told us when
 // Their deadline is sooner than the first opening they were told about (so they are on the cancellation list).
+var DAY_FULL = { mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday' };
+function isRecurringLead(l) { return ['weekly', 'biweekly', 'monthly'].indexOf(l.frequency) !== -1; }
+function preferredDaysText(l) {
+  var k = String(l.preferred_days || '').split(',').filter(function (x) { return DAY_FULL[x]; });
+  return k.length ? k.map(function (x) { return DAY_FULL[x]; }).join(', ') : 'Any weekday';
+}
 function deadlineBeforeOpening(l) {
-  if (!l.needs_by) return false;
+  if (!l.needs_by || isRecurringLead(l)) return false;   // only one-time cleans have a first-opening lead time
   var asked = startOfDay(new Date(l.schedule_requested_at || l.approved_at || l.updated_at || l.created_at));
   return dateOnly(l.needs_by) < addDays(asked, MIN_LEAD_DAYS);
 }
@@ -729,7 +735,7 @@ function urgencyRank(l) { return needsScheduling(l) ? 0 : noTimeframe(l) ? 1 : 2
 function statusChip(l) {
   if (l.status === 'booked') return h('span', { class: 'chip good' }, h('i', { text: '✓', 'aria-hidden': 'true' }), 'Won');
   if (l.status === 'lost') return h('span', { class: 'chip mute' }, h('i', { text: '✕', 'aria-hidden': 'true' }), 'Lost');
-  if (needsScheduling(l)) return h('span', { class: 'chip warn' }, h('i', { text: '!', 'aria-hidden': 'true' }), 'Approved · schedule by ' + fmtNeedsBy(l.needs_by));
+  if (needsScheduling(l)) return h('span', { class: 'chip warn' }, h('i', { text: '!', 'aria-hidden': 'true' }), (isRecurringLead(l) ? 'Approved · start by ' : 'Approved · schedule by ') + fmtNeedsBy(l.needs_by));
   if (noTimeframe(l)) return h('span', { class: 'chip warn' }, h('i', { text: '!', 'aria-hidden': 'true' }), 'Approved · no timeframe yet');
   if (l.status === 'approved') return h('span', { class: 'chip mint' }, h('i', { text: '●', 'aria-hidden': 'true' }), 'Approved');
   return h('span', { class: 'chip' }, h('i', { text: '○', 'aria-hidden': 'true' }), 'New');
@@ -826,7 +832,8 @@ function renderList() {
         var d = [];
         if (l.email) d.push(h('div', null, 'Email: ', h('a', { href: 'mailto:' + encodeURIComponent(l.email), text: l.email })));
         if (l.phone) d.push(h('div', null, 'Phone: ', h('a', { href: 'tel:' + String(l.phone).replace(/[^\d+]/g, ''), text: l.phone }), ' · ', h('a', { href: 'sms:' + String(l.phone).replace(/[^\d+]/g, ''), text: 'Text' })));
-        if (l.needs_by) d.push(h('div', null, h('strong', { text: 'Needs it by ' + fmtNeedsBy(l.needs_by) }),
+        if (l.needs_by && isRecurringLead(l)) d.push(h('div', { text: 'Preferred days: ' + preferredDaysText(l) }));
+        if (l.needs_by) d.push(h('div', null, h('strong', { text: (isRecurringLead(l) ? 'Wants to start by ' : 'Needs it by ') + fmtNeedsBy(l.needs_by) }),
           l.timeframe && TIMEFRAME_LABEL[l.timeframe] ? ' (chose ' + TIMEFRAME_LABEL[l.timeframe] + ')' : '',
           deadlineBeforeOpening(l) ? h('span', { class: 'chip warn', style: 'margin-left:8px' }, h('i', { text: '!', 'aria-hidden': 'true' }), 'Before your first opening: on the cancellation list') : null));
         if (l.schedule_notes) d.push(h('div', { text: 'Their note: ' + l.schedule_notes }));
