@@ -706,9 +706,31 @@ function renderClosing() {
 }
 
 // ── render: lead list ───────────────────────────────────────
+// A residential customer who tapped Approve & Book now tells the calculator WHEN they need it (and gives a
+// phone number). Those leads carry needs_by / timeframe / schedule_notes. One who approved but never filled
+// that in is "waiting on them"; one who did is "waiting on you" to text them a day and create the job in Jobber.
+var MIN_LEAD_DAYS = 7;      // keep in step with MIN_LEAD_DAYS in the calculator's src/shared.mjs
+var TIMEFRAME_LABEL = { week: 'within the week', two_weeks: 'within 2 weeks', date: 'by a specific date' };
+function dateOnly(iso) { var p = String(iso).split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+function fmtNeedsBy(iso) { return dateOnly(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); }
+function isApprovedOpen(l) { return l.status === 'approved' && l.type !== 'commercial'; }
+function needsScheduling(l) { return isApprovedOpen(l) && !!l.needs_by; }              // gave a timeframe, not scheduled yet
+function noTimeframe(l) { return isApprovedOpen(l) && !l.needs_by && !!l.approved_at; } // approved, never told us when
+// Their deadline is sooner than the first opening they were told about (so they are on the cancellation list).
+function deadlineBeforeOpening(l) {
+  if (!l.needs_by) return false;
+  var asked = startOfDay(new Date(l.schedule_requested_at || l.approved_at || l.updated_at || l.created_at));
+  return dateOnly(l.needs_by) < addDays(asked, MIN_LEAD_DAYS);
+}
+function daysUntil(iso) { return Math.round((dateOnly(iso) - startOfDay(new Date())) / 86400000); }
+// Open leads, most urgent first: approved with a deadline (soonest first), then approved with no timeframe, then the rest by date.
+function urgencyRank(l) { return needsScheduling(l) ? 0 : noTimeframe(l) ? 1 : 2; }
+
 function statusChip(l) {
   if (l.status === 'booked') return h('span', { class: 'chip good' }, h('i', { text: '✓', 'aria-hidden': 'true' }), 'Won');
   if (l.status === 'lost') return h('span', { class: 'chip mute' }, h('i', { text: '✕', 'aria-hidden': 'true' }), 'Lost');
+  if (needsScheduling(l)) return h('span', { class: 'chip warn' }, h('i', { text: '!', 'aria-hidden': 'true' }), 'Approved · schedule by ' + fmtNeedsBy(l.needs_by));
+  if (noTimeframe(l)) return h('span', { class: 'chip warn' }, h('i', { text: '!', 'aria-hidden': 'true' }), 'Approved · no timeframe yet');
   if (l.status === 'approved') return h('span', { class: 'chip mint' }, h('i', { text: '●', 'aria-hidden': 'true' }), 'Approved');
   return h('span', { class: 'chip' }, h('i', { text: '○', 'aria-hidden': 'true' }), 'New');
 }
@@ -728,6 +750,24 @@ function renderList() {
 
   var holder = h('div', { class: 'tbl-wrap' });
   box.appendChild(h('h2', null, 'Lead list'));
+
+  // Approved customers who need action from you, so they are not buried in the list.
+  var waitingOnMe = state.leads.filter(needsScheduling).sort(function (a, b) { return a.needs_by < b.needs_by ? -1 : 1; });
+  var waitingOnThem = state.leads.filter(noTimeframe);
+  if (waitingOnMe.length || waitingOnThem.length) {
+    var lines = [];
+    if (waitingOnMe.length) {
+      var first = waitingOnMe[0], d = daysUntil(first.needs_by);
+      lines.push(h('div', null, h('strong', { text: waitingOnMe.length + ' approved ' + (waitingOnMe.length === 1 ? 'customer needs' : 'customers need') + ' a day scheduled. ' }),
+        'Soonest deadline: ' + (first.name || 'a customer') + ', ' + fmtNeedsBy(first.needs_by) + (d <= 0 ? ' (today or past)' : d === 1 ? ' (tomorrow)' : ' (in ' + d + ' days)') + '. Text them, create the job in Jobber, then mark Won.'));
+    }
+    if (waitingOnThem.length) {
+      lines.push(h('div', null, h('strong', { text: waitingOnThem.length + ' approved but never said when they need it. ' }),
+        'They get automatic reminders by email. A quick text from you may save them.'));
+    }
+    box.appendChild(h('div', { class: 'notice' }, lines));
+  }
+
   box.appendChild(h('div', { class: 'card' }, tabs, holder));
 
   function renderRows() {
@@ -741,6 +781,15 @@ function renderList() {
       return [l.name, l.email, l.phone, l.source].join(' ').toLowerCase().indexOf(q) !== -1;
     });
     if (!list.length) { holder.appendChild(h('div', { class: 'empty', text: 'No leads here yet.' })); return; }
+    if (state.tab === 'open') {
+      // Most urgent first. Everything else keeps its newest-first order (the sort is stable).
+      list = list.map(function (l, i) { return { l: l, i: i }; }).sort(function (a, b) {
+        var ra = urgencyRank(a.l), rb = urgencyRank(b.l);
+        if (ra !== rb) return ra - rb;
+        if (ra === 0 && a.l.needs_by !== b.l.needs_by) return a.l.needs_by < b.l.needs_by ? -1 : 1;
+        return a.i - b.i;
+      }).map(function (x) { return x.l; });
+    }
     var tb = h('tbody');
     list.slice(0, 200).forEach(function (l) {
       var created = new Date(l.created_at), open = isOpen(l), stale = open && ageDays(l.created_at) >= STALE_DAYS;
@@ -776,7 +825,11 @@ function renderList() {
       if (isExp) {
         var d = [];
         if (l.email) d.push(h('div', null, 'Email: ', h('a', { href: 'mailto:' + encodeURIComponent(l.email), text: l.email })));
-        if (l.phone) d.push(h('div', null, 'Phone: ', h('a', { href: 'tel:' + String(l.phone).replace(/[^\d+]/g, ''), text: l.phone })));
+        if (l.phone) d.push(h('div', null, 'Phone: ', h('a', { href: 'tel:' + String(l.phone).replace(/[^\d+]/g, ''), text: l.phone }), ' · ', h('a', { href: 'sms:' + String(l.phone).replace(/[^\d+]/g, ''), text: 'Text' })));
+        if (l.needs_by) d.push(h('div', null, h('strong', { text: 'Needs it by ' + fmtNeedsBy(l.needs_by) }),
+          l.timeframe && TIMEFRAME_LABEL[l.timeframe] ? ' (chose ' + TIMEFRAME_LABEL[l.timeframe] + ')' : '',
+          deadlineBeforeOpening(l) ? h('span', { class: 'chip warn', style: 'margin-left:8px' }, h('i', { text: '!', 'aria-hidden': 'true' }), 'Before your first opening: on the cancellation list') : null));
+        if (l.schedule_notes) d.push(h('div', { text: 'Their note: ' + l.schedule_notes }));
         if (l.business_name) d.push(h('div', { text: 'Business: ' + l.business_name }));
         if (l.stage) d.push(h('div', { text: 'Stage: ' + l.stage }));
         if (l.notes) d.push(h('div', { text: 'Notes: ' + l.notes }));
